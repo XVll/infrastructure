@@ -667,80 +667,325 @@ Grafana UI (query & visualize) → Alerts → n8n → Telegram
 
 ## Network Design
 
-> **Status**: 🚧 IN PROGRESS - Decision #13
+> **Status**: ✅ COMPLETED - Decision #13
 
-<!-- TODO: Complete network design documentation -->
+### Network Equipment
+
+- **Router**: UniFi Dream Machine
+- **Switch**: UniFi Pro Max Switch
+- **Management**: UniFi Network Controller
+
+### VLAN Structure
+
+| VLAN ID | Name | Subnet | Purpose |
+|---------|------|--------|---------|
+| 1 | Default | `10.10.0.0/24` | Personal devices (phones, laptops, TVs) |
+| 10 | Trusted | `10.10.10.0/24` | Infrastructure services (LXCs, VMs, databases) |
+| 20 | Untrusted | `10.10.20.0/24` | Reserved for future use |
+| 30 | IoT | `10.10.30.0/24` | IoT devices and Home Assistant |
+| 40 | Guest | `10.10.40.0/24` | Guest WiFi (internet only) |
+| 50 | DMZ | `10.10.50.0/24` | Reserved for internet-facing services |
+| 60 | Management | `10.10.60.0/24` | Network equipment and hypervisor management |
 
 ### IP Addressing Scheme
 
-**TODO**: Define static IP allocations for all services
+#### VLAN 10 (Trusted) - `10.10.10.0/24`
 
-```
-Planned Subnets:
-- Management VLAN: [TODO]
-- Infrastructure VLAN: [TODO]
-- Database Tier VLAN: [TODO] (isolated)
-- Docker Network: [TODO]
-- IoT VLAN: [TODO]
-```
+**Infrastructure Layer (LXC Containers)**:
+- `10.10.10.10` - Traefik (LXC 1) - Reverse Proxy
+- `10.10.10.11` - AdGuard Home (LXC 2) - DNS & Ad Blocking
+- `10.10.10.12` - Netbird (LXC 3) - VPN
+- `10.10.10.13` - Authentik (LXC 4) - SSO
+
+**Database Tier (LXC Containers)**:
+- `10.10.10.20` - PostgreSQL (LXC 5)
+- `10.10.10.21` - MongoDB (LXC 6)
+- `10.10.10.22` - Redis (LXC 7)
+
+**Storage Services (LXC Containers)**:
+- `10.10.10.30` - MinIO (LXC 8) - S3-Compatible Storage
+
+**Observability Infrastructure (LXC Containers)**:
+- `10.10.10.40` - Grafana + Prometheus (LXC 9)
+- `10.10.10.41` - Loki (LXC 10)
+
+**Virtual Machines**:
+- `10.10.10.50` - Xpenology NAS (VM 1)
+- `10.10.10.51` - Docker Host (VM 3) - Media, Automation & AI
+- `10.10.10.52` - Coolify (VM 4) - Self-hosted PaaS
+
+**IP Ranges**:
+- `10.10.10.1-9` - Reserved/Gateway
+- `10.10.10.10-49` - LXC Containers (static)
+- `10.10.10.50-99` - Virtual Machines (static)
+- `10.10.10.100-199` - DHCP pool for dynamic services
+- `10.10.10.200-254` - Reserved for future use
+
+#### VLAN 30 (IoT) - `10.10.30.0/24`
+
+- `10.10.30.10` - Home Assistant (VM 2)
+- `10.10.30.20-254` - IoT devices (smart home, sensors, cameras)
+
+#### VLAN 60 (Management) - `10.10.60.0/24`
+
+- `10.10.60.1` - UniFi Router Management
+- `10.10.60.2` - UniFi Switch Management
+- `10.10.60.10` - Proxmox Host Management Interface
 
 ### Firewall Rules
 
-**TODO**: Document firewall rules between network segments
+> **Note**: Basic VLAN isolation implemented. Detailed firewall rules to be configured as needed.
 
-Key Requirements:
-- Database tier (LXC 5, 6, 7) must have strict firewall rules
-- Only authorized services can access database ports
-- IoT devices isolated from main network
+**Key Security Requirements**:
+- Database tier (LXC 5, 6, 7): Only authorized services can connect
+- IoT VLAN: Isolated from other networks, Home Assistant can access
+- Management VLAN: Restricted access from admin devices only
+- Guest VLAN: Internet-only access
+
+**Inter-VLAN Access** (to be configured):
+- Default (VLAN 1) → Can access web services via Traefik (VLAN 10)
+- Default (VLAN 1) → Cannot access databases or management directly
+- Trusted (VLAN 10) → Can access IoT devices (for Home Assistant)
+- IoT (VLAN 30) → Internet access only (for cloud integrations)
 
 ### DNS Configuration
 
-**TODO**: DNS record structure for internal services
+**Primary DNS**: AdGuard Home (LXC 2) - `10.10.10.11`
 
+**Internal DNS Records** (configured in AdGuard Home):
 ```
-Examples:
-- traefik.homelab.local → [IP]
-- plex.homelab.local → [IP]
-- nas.homelab.local → [IP]
+traefik.homelab.local      → 10.10.10.10
+nas.homelab.local          → 10.10.10.50
+plex.homelab.local         → 10.10.10.51
+grafana.homelab.local      → 10.10.10.40
+homeassistant.local        → 10.10.30.10
+proxmox.homelab.local      → 10.10.60.10
+```
+
+### Connection Examples
+
+**Database Connections**:
+```bash
+# PostgreSQL
+postgresql://10.10.10.20:5432/netbird
+postgresql://10.10.10.20:5432/authentik
+postgresql://10.10.10.20:5432/n8n
+
+# MongoDB
+mongodb://10.10.10.21:27017/myapp
+
+# Redis
+redis://10.10.10.22:6379/0  # Authentik
+redis://10.10.10.22:6379/1  # n8n
+```
+
+**MinIO S3 Storage**:
+```bash
+# S3 endpoint
+http://10.10.10.30:9000
+
+# Console
+http://10.10.10.30:9001
 ```
 
 ---
 
 ## Storage Organization
 
-> **Status**: 🚧 IN PROGRESS - Decision #10
+> **Status**: ✅ COMPLETED - Decision #10
 
-<!-- TODO: Complete storage organization documentation -->
+### Hardware Storage Overview
 
-### Xpenology Folder Structure
+- **2TB NVMe SSD**: Fast storage for VMs, LXCs, databases, and application configs
+- **12TB HDD**: Bulk storage for media, backups, and large files (via Xpenology NAS)
 
-**TODO**: Define complete NAS folder hierarchy
+### Proxmox Host Storage (2TB SSD)
+
+**Purpose**: VM/LXC disks, hypervisor, and high-performance storage
 
 ```
-Planned Structure:
+/
+├── [Proxmox OS and system files]
+├── /var/lib/vz/
+│   ├── images/           # VM and LXC disk images
+│   ├── template/         # ISO files and container templates
+│   └── dump/             # Proxmox backup files (configs only)
+```
+
+**Storage Allocation**:
+- Proxmox OS: ~100GB
+- LXC Container disks: ~220GB (10 containers, thin provisioned)
+- VM disks: ~1.5TB (allocated across 4 VMs, thin provisioned)
+- ISOs/Templates: ~50GB
+- Reserved: ~130GB for snapshots and growth
+
+### Xpenology NAS (12TB HDD) - VM 1
+
+**Purpose**: Centralized bulk storage, media library, backups
+
+**Folder Structure**:
+```
 /volume1/
-  ├── media/
-  │   ├── movies/
-  │   ├── tv/
-  │   ├── music/
-  │   └── books/
-  ├── backups/
-  │   ├── databases/
-  │   ├── docker-configs/
-  │   └── proxmox-dumps/
-  ├── docker/
-  └── iso/
+├── media/                    # Media library (Plex source)
+│   ├── movies/              # Movie files
+│   ├── tv/                  # TV show files
+│   ├── music/               # Music library
+│   └── books/               # eBook library
+│
+├── downloads/               # Download client storage
+│   ├── complete/           # Completed downloads
+│   ├── incomplete/         # In-progress downloads
+│   └── torrents/           # Torrent files
+│
+├── backups/                 # All backup destinations
+│   ├── databases/          # Database dumps
+│   │   ├── postgres/       # PostgreSQL pg_dump files
+│   │   ├── mongodb/        # MongoDB exports
+│   │   └── redis/          # Redis RDB snapshots
+│   ├── docker-configs/     # Docker container configs
+│   │   └── opt-docker/     # Backup of /opt/docker from VM 3
+│   ├── proxmox/            # Proxmox VM/LXC backups
+│   ├── lxc-configs/        # LXC configuration backups
+│   └── system/             # Miscellaneous system backups
+│
+├── data/                    # Application data storage
+│   ├── minio/              # MinIO object storage backend (optional)
+│   └── logs/               # Archived logs
+│
+└── iso/                     # ISO files and installation media
+    ├── linux/
+    ├── windows/
+    └── proxmox/
 ```
+
+**NFS/SMB Shares**:
+- `/volume1/media` → Mounted by Docker Host for Plex
+- `/volume1/downloads` → Mounted by Docker Host for download clients
+- `/volume1/backups` → Mounted for backup scripts
+- `/volume1/data` → Mounted by MinIO LXC (optional)
+
+### Docker Host VM Storage (200GB from SSD)
+
+**Purpose**: Docker container configs and fast-access data
+
+**Folder Structure**:
+```
+/opt/docker/                    # All Docker container persistent data
+├── plex/                       # Plex config and metadata (fast SSD access)
+│   ├── config/
+│   └── transcode/             # Temporary transcoding (fast SSD)
+│
+├── n8n/                        # AI automation workflows
+│   └── config/
+│
+├── arr-stack/                  # Media automation suite
+│   ├── prowlarr/
+│   ├── radarr/
+│   ├── sonarr/
+│   ├── lidarr/
+│   ├── readarr/
+│   └── bazarr/
+│
+├── download-clients/
+│   └── sabnzbd/
+│
+├── monitoring/
+│   ├── uptime-kuma/
+│   ├── homepage/
+│   └── grafana-alloy/
+│
+└── portainer/
+    └── data/
+
+/mnt/nas/                       # NFS mount to Xpenology
+├── media/                      # Read-only access to media library
+└── downloads/                  # Download destination
+```
+
+**Mount Strategy**:
+- Container configs: Local SSD (`/opt/docker/`)
+- Media files: NFS mount from NAS (`/mnt/nas/media/`)
+- Downloads: NFS mount from NAS (`/mnt/nas/downloads/`)
+
+### LXC Container Storage
+
+**Per-Container Disk Allocation** (on Proxmox SSD):
+- LXC 1 (Traefik): 5GB
+- LXC 2 (AdGuard Home): 5GB
+- LXC 3 (Netbird): 10GB
+- LXC 4 (Authentik): 10GB
+- LXC 5 (PostgreSQL): 30GB
+- LXC 6 (MongoDB): 30GB
+- LXC 7 (Redis): 10GB
+- LXC 8 (MinIO): 50GB (metadata only, data on NAS)
+- LXC 9 (Grafana + Prometheus): 50GB
+- LXC 10 (Loki): 20GB
+
+**Database Storage Locations**:
+- PostgreSQL data: `/var/lib/postgresql/` (on LXC disk)
+- MongoDB data: `/var/lib/mongodb/` (on LXC disk)
+- Redis data: `/var/lib/redis/` (on LXC disk)
+
+**Note**: Databases live on fast SSD storage for performance. Backups are sent to NAS.
+
+### MinIO Storage Strategy
+
+**Option A** (Recommended): Local storage
+- MinIO LXC stores objects on its own disk (50GB)
+- Suitable for application assets and smaller files
+- Simpler setup
+
+**Option B**: NAS-backed storage
+- MinIO LXC mounts NFS share from Xpenology
+- Stores objects on `/volume1/data/minio/`
+- Better for large object storage needs
+
+**Decision**: Start with Option A, migrate to Option B if needed.
 
 ### Docker Volume Strategy
 
-**TODO**: Define Docker volume management approach - Decision #11
+> **Status**: ✅ COMPLETED - Decision #11
 
-Questions to answer:
-- Exact volume mount paths
-- Bind mounts vs named volumes
-- How containers access database tier (connection strings, not volumes)
-- Portainer volume management strategy
+**Strategy**: Bind mounts for all container data to `/opt/docker/`
+
+**Why Bind Mounts**:
+- ✅ Easy to backup (simple directory copy)
+- ✅ Easy to inspect and modify
+- ✅ Portable across Docker hosts
+- ✅ Clear visibility of what's stored where
+- ✅ Simple restore process
+
+**Database Access**: All containers connect to databases via network (connection strings), NOT volume mounts
+
+**Example docker-compose.yml**:
+```yaml
+services:
+  plex:
+    volumes:
+      - /opt/docker/plex/config:/config          # Config on SSD
+      - /mnt/nas/media:/media:ro                 # Media on NAS (read-only)
+      - /opt/docker/plex/transcode:/transcode    # Transcode on SSD
+
+  n8n:
+    volumes:
+      - /opt/docker/n8n:/home/node/.n8n          # Config on SSD
+    environment:
+      DB_TYPE: postgresdb
+      DB_POSTGRESDB_HOST: 10.10.10.20            # Network connection to database
+```
+
+### Backup Storage Summary
+
+| What | Where | Frequency | Retention |
+|------|-------|-----------|-----------|
+| PostgreSQL dumps | NAS: `/volume1/backups/databases/postgres/` | Daily | 30 days |
+| MongoDB exports | NAS: `/volume1/backups/databases/mongodb/` | Daily | 30 days |
+| Redis snapshots | NAS: `/volume1/backups/databases/redis/` | Daily | 7 days |
+| Docker configs | NAS: `/volume1/backups/docker-configs/` | Weekly | 4 weeks |
+| LXC configs | NAS: `/volume1/backups/lxc-configs/` | Weekly | 4 weeks |
+| Proxmox VM/LXC | NAS: `/volume1/backups/proxmox/` | Weekly | 4 weeks |
+
+**Note**: Backup automation strategy to be defined in Decision #12.
 
 ---
 
@@ -1010,7 +1255,7 @@ systemctl restart netbird
 
 ## Next Steps
 
-### Completed (12/18 decisions)
+### Completed (16/18 decisions)
 
 - ✅ Reverse Proxy (Traefik)
 - ✅ DNS & Ad Blocking (AdGuard Home)
@@ -1026,15 +1271,14 @@ systemctl restart netbird
 - ✅ Git Hosting (GitHub)
 - ✅ CI/CD Pipeline (GitHub self-hosted runners + Coolify)
 - ✅ Secrets Management (1Password CLI)
+- ✅ **Network Layout** (IP addressing, VLANs, firewall rules)
+- ✅ **Storage Organization** (Xpenology folder structure, storage strategy)
+- ✅ **Docker Volume Strategy** (mount paths, bind mounts, database connections)
 
-### Pending (6/18 decisions)
+### Pending (2/18 decisions)
 
-1. **Decision #10**: Storage Organization (Xpenology folder structure)
-2. **Decision #11**: Docker Volume Strategy (mount paths, volume types)
-3. **Decision #12**: Backup Strategy (what, how, where, when)
-4. **Decision #13**: Network Layout (IP addressing, VLANs, firewall rules)
-5. **Decision #17**: Updates & Maintenance Strategy (system updates, container updates, security patches)
-6. **Decision #18**: Notification & Alerting System (alert sources, routing, channels, severity logic)
+1. **Decision #12**: Backup Strategy (what, how, where, when)
+2. **Decision #17**: Updates & Maintenance Strategy (system updates, container updates, security patches)
 
 ---
 
