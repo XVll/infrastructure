@@ -31,7 +31,7 @@ datasources:
   - name: PostgreSQL
     type: postgres
     access: proxy
-    url: 10.10.11.10:5432
+    url: 10.10.10.11:5432
     database: grafana
     user: grafana
     secureJsonData:

@@ -13,10 +13,10 @@ services:
       # Enable SSL
       POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256"
     ports:
-      - "10.10.11.10:5432:5432"
+      - "10.10.10.11:5432:5432"
     volumes:
       - ./data/postgres:/var/lib/postgresql/data
-      - ./backups/postgres:/backups
+      - /mnt/nas/backups/vm2-data-tier/postgres:/backups
       - ./certs/postgres:/certs:ro
       - ./config/postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
       - ./config/postgres/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
@@ -29,8 +29,7 @@ services:
       -c config_file=/etc/postgresql/postgresql.conf
       -c hba_file=/etc/postgresql/pg_hba.conf
     networks:
-      data_tier:
-        ipv4_address: 10.10.11.11
+      - data_tier
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
       interval: 10s
@@ -59,16 +58,15 @@ services:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:-root}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
     ports:
-      - "10.10.11.10:27017:27017"
+      - "10.10.10.11:27017:27017"
     volumes:
       - ./data/mongodb:/data/db
-      - ./backups/mongodb:/backups
+      - /mnt/nas/backups/vm2-data-tier/mongodb:/backups
       - ./certs/mongodb:/certs:ro
       - ./config/mongodb/mongod.conf:/etc/mongod.conf:ro
     command: ["--config", "/etc/mongod.conf"]
     networks:
-      data_tier:
-        ipv4_address: 10.10.11.12
+      - data_tier
     healthcheck:
       test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
       interval: 10s
@@ -107,14 +105,13 @@ services:
       --tls-ca-cert-file /certs/ca.crt
       --tls-auth-clients no
     ports:
-      - "10.10.11.10:6379:6380"
+      - "10.10.10.11:6379:6380"
     volumes:
       - ./data/redis:/data
-      - ./backups/redis:/backups
+      - /mnt/nas/backups/vm2-data-tier/redis:/backups
       - ./certs/redis:/certs:ro
     networks:
-      data_tier:
-        ipv4_address: 10.10.11.13
+      - data_tier
     healthcheck:
       test: ["CMD", "redis-cli", "--tls", "--cert", "/certs/server.crt", "--key", "/certs/server.key", "--cacert", "/certs/ca.crt", "ping"]
       interval: 10s
@@ -147,15 +144,14 @@ services:
       MINIO_BROWSER_REDIRECT_URL: ${MINIO_CONSOLE_URL:-https://minio-console.homelab.local}
     command: server /data --console-address ":9001" --certs-dir /certs
     ports:
-      - "10.10.11.10:9000:9000"  # S3 API
-      - "10.10.11.10:9001:9001"  # Web Console
+      - "10.10.10.11:9000:9000"  # S3 API
+      - "10.10.10.11:9001:9001"  # Web Console
     volumes:
       - ./data/minio:/data
-      - ./backups/minio:/backups
+      - /mnt/nas/backups/vm2-data-tier/minio:/backups
       - ./certs/minio:/certs:ro
     networks:
-      data_tier:
-        ipv4_address: 10.10.11.14
+      - data_tier
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
       interval: 30s
@@ -178,10 +174,6 @@ services:
 networks:
   data_tier:
     driver: bridge
-    ipam:
-      config:
-        - subnet: 10.10.11.0/24
-          gateway: 10.10.11.1
 
 volumes:
   postgres_data:

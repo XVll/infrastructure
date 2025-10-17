@@ -10,7 +10,7 @@ services:
     environment:
       # Database (PostgreSQL on VM 2)
       GF_DATABASE_TYPE: postgres
-      GF_DATABASE_HOST: 10.10.11.10:5432
+      GF_DATABASE_HOST: 10.10.10.11:5432
       GF_DATABASE_NAME: grafana
       GF_DATABASE_USER: grafana
       GF_DATABASE_PASSWORD: ${GRAFANA_DB_PASSWORD}
@@ -47,7 +47,7 @@ services:
       GF_SMTP_PASSWORD: ${SMTP_PASSWORD}
       GF_SMTP_FROM_ADDRESS: ${SMTP_FROM:-grafana@homelab.local}
     ports:
-      - "10.10.10.20:3000:3000"
+      - "10.10.10.12:3000:3000"
     volumes:
       - ./data/grafana:/var/lib/grafana
       - ./config/grafana/provisioning:/etc/grafana/provisioning
@@ -89,7 +89,7 @@ services:
       - '--web.enable-lifecycle'
       - '--web.enable-admin-api'
     ports:
-      - "10.10.10.20:9090:9090"
+      - "10.10.10.12:9090:9090"
     volumes:
       - ./data/prometheus:/prometheus
       - ./config/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
@@ -123,7 +123,7 @@ services:
     user: "10001"
     command: -config.file=/etc/loki/config.yml
     ports:
-      - "10.10.10.20:3100:3100"
+      - "10.10.10.12:3100:3100"
     volumes:
       - ./data/loki:/loki
       - ./config/loki/config.yml:/etc/loki/config.yml:ro
@@ -159,9 +159,9 @@ services:
       - --server.http.listen-addr=0.0.0.0:12345
       - --storage.path=/var/lib/alloy/data
     ports:
-      - "10.10.10.20:12345:12345"  # Alloy UI
-      - "10.10.10.20:4317:4317"    # OTLP gRPC
-      - "10.10.10.20:4318:4318"    # OTLP HTTP
+      - "10.10.10.12:12345:12345"  # Alloy UI
+      - "10.10.10.12:4317:4317"    # OTLP gRPC
+      - "10.10.10.12:4318:4318"    # OTLP HTTP
     volumes:
       - ./config/alloy/config.alloy:/etc/alloy/config.alloy:ro
       - ./data/alloy:/var/lib/alloy
@@ -189,7 +189,7 @@ services:
     container_name: uptime-kuma
     restart: unless-stopped
     ports:
-      - "10.10.10.20:3001:3001"
+      - "10.10.10.12:3001:3001"
     volumes:
       - ./data/uptime-kuma:/app/data
     networks:
@@ -224,7 +224,7 @@ services:
       - '--path.rootfs=/rootfs'
       - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
     ports:
-      - "10.10.10.20:9100:9100"
+      - "10.10.10.12:9100:9100"
     volumes:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
@@ -248,7 +248,7 @@ services:
     container_name: cadvisor
     restart: unless-stopped
     ports:
-      - "10.10.10.20:8081:8080"
+      - "10.10.10.12:8081:8080"
     volumes:
       - /:/rootfs:ro
       - /var/run:/var/run:ro
@@ -274,10 +274,6 @@ services:
 networks:
   observability:
     driver: bridge
-    ipam:
-      config:
-        - subnet: 10.10.10.0/24
-          gateway: 10.10.10.1
 
 volumes:
   grafana_data:

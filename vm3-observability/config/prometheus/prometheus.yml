@@ -87,21 +87,21 @@ scrape_configs:
   # VM 2: Data Tier
   - job_name: 'postgres-exporter'
     static_configs:
-      - targets: ['10.10.11.10:9187']
+      - targets: ['10.10.10.11:9187']
         labels:
           instance: 'postgres'
           vm: 'vm2-data-tier'
 
   - job_name: 'mongodb-exporter'
     static_configs:
-      - targets: ['10.10.11.10:9216']
+      - targets: ['10.10.10.11:9216']
         labels:
           instance: 'mongodb'
           vm: 'vm2-data-tier'
 
   - job_name: 'redis-exporter'
     static_configs:
-      - targets: ['10.10.11.10:9121']
+      - targets: ['10.10.10.11:9121']
         labels:
           instance: 'redis'
           vm: 'vm2-data-tier'
@@ -112,14 +112,14 @@ scrape_configs:
     tls_config:
       insecure_skip_verify: true
     static_configs:
-      - targets: ['10.10.11.10:9000']
+      - targets: ['10.10.10.11:9000']
         labels:
           instance: 'minio'
           vm: 'vm2-data-tier'
 
   - job_name: 'node-exporter-vm2'
     static_configs:
-      - targets: ['10.10.11.10:9100']
+      - targets: ['10.10.10.11:9100']
         labels:
           instance: 'vm2-data-tier'
           vm: 'vm2-data-tier'
@@ -127,28 +127,28 @@ scrape_configs:
   # VM 4: Media & Automation
   - job_name: 'sonarr'
     static_configs:
-      - targets: ['10.10.12.10:9897']
+      - targets: ['10.10.10.13:9897']
         labels:
           instance: 'sonarr'
           vm: 'vm4-media-automation'
 
   - job_name: 'radarr'
     static_configs:
-      - targets: ['10.10.12.10:9898']
+      - targets: ['10.10.10.13:9898']
         labels:
           instance: 'radarr'
           vm: 'vm4-media-automation'
 
   - job_name: 'prowlarr'
     static_configs:
-      - targets: ['10.10.12.10:9899']
+      - targets: ['10.10.10.13:9899']
         labels:
           instance: 'prowlarr'
           vm: 'vm4-media-automation'
 
   - job_name: 'node-exporter-vm4'
     static_configs:
-      - targets: ['10.10.12.10:9100']
+      - targets: ['10.10.10.13:9100']
         labels:
           instance: 'vm4-media-automation'
           vm: 'vm4-media-automation'
@@ -156,14 +156,14 @@ scrape_configs:
   # VM 5: Coolify
   - job_name: 'coolify'
     static_configs:
-      - targets: ['10.10.13.10:9090']
+      - targets: ['10.10.10.14:9090']
         labels:
           instance: 'coolify'
           vm: 'vm5-coolify'
 
   - job_name: 'node-exporter-vm5'
     static_configs:
-      - targets: ['10.10.13.10:9100']
+      - targets: ['10.10.10.14:9100']
         labels:
           instance: 'vm5-coolify'
           vm: 'vm5-coolify'

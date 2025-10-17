@@ -66,8 +66,7 @@ services:
       - ./data/adguard/work:/opt/adguardhome/work
       - ./data/adguard/conf:/opt/adguardhome/conf
     networks:
-      edge_network:
-        ipv4_address: 10.10.10.53
+      - edge_network
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.adguard.rule=Host(`dns.${DOMAIN}`)"
@@ -96,13 +95,13 @@ services:
     restart: unless-stopped
     command: server
     environment:
-      AUTHENTIK_REDIS__HOST: 10.10.11.10
+      AUTHENTIK_REDIS__HOST: 10.10.10.11
       AUTHENTIK_REDIS__PORT: 6379
       AUTHENTIK_REDIS__PASSWORD: ${REDIS_PASSWORD}
       AUTHENTIK_REDIS__DB: 0
       AUTHENTIK_REDIS__TLS: "true"
       AUTHENTIK_REDIS__TLS_REQS: "0"
-      AUTHENTIK_POSTGRESQL__HOST: 10.10.11.10
+      AUTHENTIK_POSTGRESQL__HOST: 10.10.10.11
       AUTHENTIK_POSTGRESQL__PORT: 5432
       AUTHENTIK_POSTGRESQL__NAME: authentik
       AUTHENTIK_POSTGRESQL__USER: authentik
@@ -156,13 +155,13 @@ services:
     restart: unless-stopped
     command: worker
     environment:
-      AUTHENTIK_REDIS__HOST: 10.10.11.10
+      AUTHENTIK_REDIS__HOST: 10.10.10.11
       AUTHENTIK_REDIS__PORT: 6379
       AUTHENTIK_REDIS__PASSWORD: ${REDIS_PASSWORD}
       AUTHENTIK_REDIS__DB: 0
       AUTHENTIK_REDIS__TLS: "true"
       AUTHENTIK_REDIS__TLS_REQS: "0"
-      AUTHENTIK_POSTGRESQL__HOST: 10.10.11.10
+      AUTHENTIK_POSTGRESQL__HOST: 10.10.10.11
       AUTHENTIK_POSTGRESQL__PORT: 5432
       AUTHENTIK_POSTGRESQL__NAME: authentik
       AUTHENTIK_POSTGRESQL__USER: authentik
@@ -205,17 +204,9 @@ services:
 networks:
   edge_network:
     driver: bridge
-    ipam:
-      config:
-        - subnet: 10.10.10.0/24
-          gateway: 10.10.10.1
 
-  # This network allows routing to other VMs
   homelab_routing:
     driver: bridge
-    ipam:
-      config:
-        - subnet: 172.20.0.0/16
 
 volumes:
   traefik_acme:

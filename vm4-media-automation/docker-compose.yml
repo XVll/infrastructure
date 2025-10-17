@@ -11,7 +11,7 @@ services:
       - PGID=1000
       - TZ=UTC
     ports:
-      - "10.10.12.10:8989:8989"
+      - "10.10.10.13:8989:8989"
     volumes:
       - ./data/sonarr:/config
       - ${NAS_MEDIA_PATH}/tv:/tv
@@ -39,7 +39,7 @@ services:
       - PGID=1000
       - TZ=UTC
     ports:
-      - "10.10.12.10:7878:7878"
+      - "10.10.10.13:7878:7878"
     volumes:
       - ./data/radarr:/config
       - ${NAS_MEDIA_PATH}/movies:/movies
@@ -67,7 +67,7 @@ services:
       - PGID=1000
       - TZ=UTC
     ports:
-      - "10.10.12.10:9696:9696"
+      - "10.10.10.13:9696:9696"
     volumes:
       - ./data/prowlarr:/config
     networks:
@@ -94,10 +94,10 @@ services:
       - TZ=UTC
       - JELLYFIN_PublishedServerUrl=https://jellyfin.${DOMAIN}
     ports:
-      - "10.10.12.10:8096:8096"
-      - "10.10.12.10:8920:8920"  # HTTPS (optional)
-      - "10.10.12.10:7359:7359/udp"  # Service discovery
-      - "10.10.12.10:1900:1900/udp"  # Service discovery
+      - "10.10.10.13:8096:8096"
+      - "10.10.10.13:8920:8920"  # HTTPS (optional)
+      - "10.10.10.13:7359:7359/udp"  # Service discovery
+      - "10.10.10.13:1900:1900/udp"  # Service discovery
     volumes:
       - ./data/jellyfin/config:/config
       - ./data/jellyfin/cache:/cache
@@ -130,9 +130,9 @@ services:
       - TZ=UTC
       - WEBUI_PORT=8080
     ports:
-      - "10.10.12.10:8080:8080"  # Web UI
-      - "10.10.12.10:6881:6881"  # Torrent port TCP
-      - "10.10.12.10:6881:6881/udp"  # Torrent port UDP
+      - "10.10.10.13:8080:8080"  # Web UI
+      - "10.10.10.13:6881:6881"  # Torrent port TCP
+      - "10.10.10.13:6881:6881/udp"  # Torrent port UDP
     volumes:
       - ./data/qbittorrent:/config
       - ${NAS_DOWNLOADS_PATH}:/downloads
@@ -163,7 +163,7 @@ services:
       - GENERIC_TIMEZONE=UTC
       # Database (PostgreSQL on VM2)
       - DB_TYPE=postgresdb
-      - DB_POSTGRESDB_HOST=10.10.11.10
+      - DB_POSTGRESDB_HOST=10.10.10.11
       - DB_POSTGRESDB_PORT=5432
       - DB_POSTGRESDB_DATABASE=n8n
       - DB_POSTGRESDB_USER=n8n
@@ -173,13 +173,13 @@ services:
       # Encryption key
       - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
       # Redis Queue (optional, for scaling)
-      - QUEUE_BULL_REDIS_HOST=10.10.11.10
+      - QUEUE_BULL_REDIS_HOST=10.10.10.11
       - QUEUE_BULL_REDIS_PORT=6379
       - QUEUE_BULL_REDIS_PASSWORD=${REDIS_PASSWORD}
       - QUEUE_BULL_REDIS_TLS=true
       - EXECUTIONS_MODE=queue
     ports:
-      - "10.10.12.10:5678:5678"
+      - "10.10.10.13:5678:5678"
     volumes:
       - ./data/n8n:/home/node/.n8n
     networks:
@@ -206,14 +206,14 @@ services:
       PAPERLESS_TIME_ZONE=UTC
       PAPERLESS_OCR_LANGUAGE=eng
       # Database (PostgreSQL on VM2)
-      PAPERLESS_DBHOST=10.10.11.10
+      PAPERLESS_DBHOST=10.10.10.11
       PAPERLESS_DBPORT=5432
       PAPERLESS_DBNAME=paperless
       PAPERLESS_DBUSER=paperless
       PAPERLESS_DBPASS=${PAPERLESS_DB_PASSWORD}
       PAPERLESS_DBSSLMODE=require
       # Redis (on VM2)
-      PAPERLESS_REDIS=rediss://:${REDIS_PASSWORD}@10.10.11.10:6379
+      PAPERLESS_REDIS=rediss://:${REDIS_PASSWORD}@10.10.10.11:6379
       # Admin user
       PAPERLESS_ADMIN_USER=${PAPERLESS_ADMIN_USER:-admin}
       PAPERLESS_ADMIN_PASSWORD=${PAPERLESS_ADMIN_PASSWORD}
@@ -222,7 +222,7 @@ services:
       PAPERLESS_TIKA_ENDPOINT=http://tika:9998
       PAPERLESS_TIKA_GOTENBERG_ENDPOINT=http://gotenberg:3000
     ports:
-      - "10.10.12.10:8000:8000"
+      - "10.10.10.13:8000:8000"
     volumes:
       - ./data/paperless/data:/usr/src/paperless/data
       - ./data/paperless/media:/usr/src/paperless/media
@@ -281,7 +281,7 @@ services:
     environment:
       - TZ=UTC
     ports:
-      - "10.10.12.10:5000:5000"
+      - "10.10.10.13:5000:5000"
     volumes:
       - ./data/kavita:/kavita/config
       - ${NAS_MEDIA_PATH}/books:/books
@@ -309,7 +309,7 @@ services:
       - LOG_LEVEL=info
       - TZ=UTC
     ports:
-      - "10.10.12.10:8191:8191"
+      - "10.10.10.13:8191:8191"
     networks:
       - media_network
     deploy:
@@ -334,7 +334,7 @@ services:
       - URL=http://sonarr:8989
       - APIKEY=${SONARR_API_KEY}
     ports:
-      - "10.10.12.10:9897:9897"
+      - "10.10.10.13:9897:9897"
     networks:
       - media_network
     depends_on:
@@ -350,7 +350,7 @@ services:
       - URL=http://radarr:7878
       - APIKEY=${RADARR_API_KEY}
     ports:
-      - "10.10.12.10:9898:9898"
+      - "10.10.10.13:9898:9898"
     networks:
       - media_network
     depends_on:
@@ -366,7 +366,7 @@ services:
       - URL=http://prowlarr:9696
       - APIKEY=${PROWLARR_API_KEY}
     ports:
-      - "10.10.12.10:9899:9899"
+      - "10.10.10.13:9899:9899"
     networks:
       - media_network
     depends_on:
@@ -375,10 +375,6 @@ services:
 networks:
   media_network:
     driver: bridge
-    ipam:
-      config:
-        - subnet: 10.10.12.0/24
-          gateway: 10.10.12.1
 
 volumes:
   sonarr_data:
