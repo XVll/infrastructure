@@ -1,0 +1,22 @@
+# Environment variables (contains secrets)
+.env
+
+# Data directories (contains database files)
+data/
+backups/
+
+# TLS certificates and keys
+certs/*/server.key
+certs/*/server.crt
+certs/*/server.pem
+certs/*/ca.key
+certs/*/ca.crt
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.swp
+*~

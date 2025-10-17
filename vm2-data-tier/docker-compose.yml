@@ -1,0 +1,190 @@
+version: '3.8'
+
+services:
+  # PostgreSQL - Primary relational database
+  postgres:
+    image: postgres:16-alpine
+    container_name: postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: postgres
+      # Enable SSL
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256"
+    ports:
+      - "10.10.11.10:5432:5432"
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+      - ./backups/postgres:/backups
+      - ./certs/postgres:/certs:ro
+      - ./config/postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+      - ./config/postgres/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
+    command: >
+      postgres
+      -c ssl=on
+      -c ssl_cert_file=/certs/server.crt
+      -c ssl_key_file=/certs/server.key
+      -c ssl_ca_file=/certs/ca.crt
+      -c config_file=/etc/postgresql/postgresql.conf
+      -c hba_file=/etc/postgresql/pg_hba.conf
+    networks:
+      data_tier:
+        ipv4_address: 10.10.11.11
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+          cpus: '2'
+        reservations:
+          memory: 2G
+          cpus: '1'
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # MongoDB - Document database
+  mongodb:
+    image: mongo:7
+    container_name: mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:-root}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
+    ports:
+      - "10.10.11.10:27017:27017"
+    volumes:
+      - ./data/mongodb:/data/db
+      - ./backups/mongodb:/backups
+      - ./certs/mongodb:/certs:ro
+      - ./config/mongodb/mongod.conf:/etc/mongod.conf:ro
+    command: ["--config", "/etc/mongod.conf"]
+    networks:
+      data_tier:
+        ipv4_address: 10.10.11.12
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 3G
+          cpus: '1.5'
+        reservations:
+          memory: 1G
+          cpus: '0.5'
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Redis - In-memory cache and message broker
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    restart: unless-stopped
+    command: >
+      redis-server
+      --requirepass ${REDIS_PASSWORD}
+      --maxmemory 2gb
+      --maxmemory-policy allkeys-lru
+      --appendonly yes
+      --appendfsync everysec
+      --tls-port 6380
+      --port 0
+      --tls-cert-file /certs/server.crt
+      --tls-key-file /certs/server.key
+      --tls-ca-cert-file /certs/ca.crt
+      --tls-auth-clients no
+    ports:
+      - "10.10.11.10:6379:6380"
+    volumes:
+      - ./data/redis:/data
+      - ./backups/redis:/backups
+      - ./certs/redis:/certs:ro
+    networks:
+      data_tier:
+        ipv4_address: 10.10.11.13
+    healthcheck:
+      test: ["CMD", "redis-cli", "--tls", "--cert", "/certs/server.crt", "--key", "/certs/server.key", "--cacert", "/certs/ca.crt", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # MinIO - S3-compatible object storage
+  minio:
+    image: minio/minio:latest
+    container_name: minio
+    restart: unless-stopped
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      MINIO_DOMAIN: ${MINIO_DOMAIN:-s3.homelab.local}
+      MINIO_SERVER_URL: ${MINIO_SERVER_URL:-https://s3.homelab.local}
+      MINIO_BROWSER_REDIRECT_URL: ${MINIO_CONSOLE_URL:-https://minio-console.homelab.local}
+    command: server /data --console-address ":9001" --certs-dir /certs
+    ports:
+      - "10.10.11.10:9000:9000"  # S3 API
+      - "10.10.11.10:9001:9001"  # Web Console
+    volumes:
+      - ./data/minio:/data
+      - ./backups/minio:/backups
+      - ./certs/minio:/certs:ro
+    networks:
+      data_tier:
+        ipv4_address: 10.10.11.14
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  data_tier:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.10.11.0/24
+          gateway: 10.10.11.1
+
+volumes:
+  postgres_data:
+  mongodb_data:
+  redis_data:
+  minio_data:

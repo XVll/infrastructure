@@ -1,0 +1,14 @@
+# Environment variables (contains secrets)
+.env
+
+# Application data directories
+data/
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.swp
+*~

@@ -1,0 +1,26 @@
+# Environment variables (contains secrets)
+.env
+
+# Grafana data
+data/grafana/
+
+# Prometheus data
+data/prometheus/
+
+# Loki data
+data/loki/
+
+# Alloy data
+data/alloy/
+
+# Uptime Kuma data
+data/uptime-kuma/
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.swp
+*~

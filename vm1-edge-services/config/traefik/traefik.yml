@@ -1,0 +1,85 @@
+# Traefik Static Configuration
+
+# Global configuration
+global:
+  checkNewVersion: false
+  sendAnonymousUsage: false
+
+# API and Dashboard
+api:
+  dashboard: true
+  insecure: false
+
+# Entry Points
+entryPoints:
+  web:
+    address: ":80"
+    # Redirect HTTP to HTTPS
+    http:
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https
+          permanent: true
+
+  websecure:
+    address: ":443"
+    http:
+      tls:
+        certResolver: cloudflare
+        domains:
+          - main: "homelab.local"
+            sans:
+              - "*.homelab.local"
+
+# Certificate Resolvers
+certificatesResolvers:
+  cloudflare:
+    acme:
+      email: your-email@example.com
+      storage: /acme.json
+      dnsChallenge:
+        provider: cloudflare
+        resolvers:
+          - "1.1.1.1:53"
+          - "8.8.8.8:53"
+        delayBeforeCheck: 30
+
+# Providers
+providers:
+  docker:
+    endpoint: "unix:///var/run/docker.sock"
+    exposedByDefault: false
+    network: homelab_routing
+    watch: true
+
+  file:
+    directory: /dynamic
+    watch: true
+
+# Logging
+log:
+  level: INFO
+  filePath: /logs/traefik.log
+  format: json
+
+# Access Logs
+accessLog:
+  filePath: /logs/access.log
+  format: json
+  bufferingSize: 100
+  filters:
+    statusCodes:
+      - "400-599"
+
+# Metrics (for Prometheus)
+metrics:
+  prometheus:
+    addEntryPointsLabels: true
+    addServicesLabels: true
+    addRoutersLabels: true
+    entryPoint: metrics
+
+# Ping endpoint for health checks
+ping:
+  entryPoint: web

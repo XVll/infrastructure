@@ -1,0 +1,240 @@
+# Traefik Dynamic Configuration - Authentik Middleware
+
+http:
+  middlewares:
+    # Authentik Forward Auth Middleware
+    authentik:
+      forwardAuth:
+        address: http://authentik-server:9000/outpost.goauthentik.io/auth/traefik
+        trustForwardHeader: true
+        authResponseHeaders:
+          - X-authentik-username
+          - X-authentik-groups
+          - X-authentik-email
+          - X-authentik-name
+          - X-authentik-uid
+          - X-authentik-jwt
+          - X-authentik-meta-jwks
+          - X-authentik-meta-outpost
+          - X-authentik-meta-provider
+          - X-authentik-meta-app
+          - X-authentik-meta-version
+
+    # Security Headers
+    security-headers:
+      headers:
+        browserXssFilter: true
+        contentTypeNosniff: true
+        forceSTSHeader: true
+        frameDeny: true
+        stsIncludeSubdomains: true
+        stsPreload: true
+        stsSeconds: 31536000
+        customFrameOptionsValue: "SAMEORIGIN"
+        customResponseHeaders:
+          X-Robots-Tag: "none,noarchive,nosnippet,notranslate,noimageindex"
+
+    # Rate Limiting
+    rate-limit:
+      rateLimit:
+        average: 100
+        burst: 50
+        period: 1m
+
+    # Compression
+    compression:
+      compress: {}
+
+  # Services for other VMs
+  services:
+    # VM 3: Grafana (Observability)
+    grafana:
+      loadBalancer:
+        servers:
+          - url: "http://10.10.10.20:3000"
+
+    # VM 4: Media Apps
+    sonarr:
+      loadBalancer:
+        servers:
+          - url: "http://10.10.12.10:8989"
+
+    radarr:
+      loadBalancer:
+        servers:
+          - url: "http://10.10.12.10:7878"
+
+    prowlarr:
+      loadBalancer:
+        servers:
+          - url: "http://10.10.12.10:9696"
+
+    jellyfin:
+      loadBalancer:
+        servers:
+          - url: "http://10.10.12.10:8096"
+
+    qbittorrent:
+      loadBalancer:
+        servers:
+          - url: "http://10.10.12.10:8080"
+
+    n8n:
+      loadBalancer:
+        servers:
+          - url: "http://10.10.12.10:5678"
+
+    paperless:
+      loadBalancer:
+        servers:
+          - url: "http://10.10.12.10:8000"
+
+    # VM 5: Coolify
+    coolify:
+      loadBalancer:
+        servers:
+          - url: "http://10.10.13.10:8000"
+
+    # VM 2: MinIO Console
+    minio-console:
+      loadBalancer:
+        servers:
+          - url: "http://10.10.11.10:9001"
+
+    minio-api:
+      loadBalancer:
+        servers:
+          - url: "http://10.10.11.10:9000"
+
+  # Routers for services
+  routers:
+    # Grafana
+    grafana:
+      rule: "Host(`grafana.homelab.local`)"
+      entryPoints:
+        - websecure
+      service: grafana
+      middlewares:
+        - authentik
+        - security-headers
+      tls:
+        certResolver: cloudflare
+
+    # Sonarr
+    sonarr:
+      rule: "Host(`sonarr.homelab.local`)"
+      entryPoints:
+        - websecure
+      service: sonarr
+      middlewares:
+        - authentik
+        - security-headers
+      tls:
+        certResolver: cloudflare
+
+    # Radarr
+    radarr:
+      rule: "Host(`radarr.homelab.local`)"
+      entryPoints:
+        - websecure
+      service: radarr
+      middlewares:
+        - authentik
+        - security-headers
+      tls:
+        certResolver: cloudflare
+
+    # Prowlarr
+    prowlarr:
+      rule: "Host(`prowlarr.homelab.local`)"
+      entryPoints:
+        - websecure
+      service: prowlarr
+      middlewares:
+        - authentik
+        - security-headers
+      tls:
+        certResolver: cloudflare
+
+    # Jellyfin
+    jellyfin:
+      rule: "Host(`jellyfin.homelab.local`)"
+      entryPoints:
+        - websecure
+      service: jellyfin
+      middlewares:
+        - authentik
+        - security-headers
+      tls:
+        certResolver: cloudflare
+
+    # qBittorrent
+    qbittorrent:
+      rule: "Host(`qbittorrent.homelab.local`)"
+      entryPoints:
+        - websecure
+      service: qbittorrent
+      middlewares:
+        - authentik
+        - security-headers
+      tls:
+        certResolver: cloudflare
+
+    # n8n
+    n8n:
+      rule: "Host(`n8n.homelab.local`)"
+      entryPoints:
+        - websecure
+      service: n8n
+      middlewares:
+        - authentik
+        - security-headers
+      tls:
+        certResolver: cloudflare
+
+    # Paperless
+    paperless:
+      rule: "Host(`paperless.homelab.local`)"
+      entryPoints:
+        - websecure
+      service: paperless
+      middlewares:
+        - authentik
+        - security-headers
+      tls:
+        certResolver: cloudflare
+
+    # Coolify
+    coolify:
+      rule: "Host(`coolify.homelab.local`)"
+      entryPoints:
+        - websecure
+      service: coolify
+      middlewares:
+        - authentik
+        - security-headers
+      tls:
+        certResolver: cloudflare
+
+    # MinIO Console
+    minio-console:
+      rule: "Host(`minio-console.homelab.local`)"
+      entryPoints:
+        - websecure
+      service: minio-console
+      middlewares:
+        - authentik
+        - security-headers
+      tls:
+        certResolver: cloudflare
+
+    # MinIO API (S3)
+    minio-api:
+      rule: "Host(`s3.homelab.local`)"
+      entryPoints:
+        - websecure
+      service: minio-api
+      middlewares:
+        - security-headers
+      tls:
+        certResolver: cloudflare

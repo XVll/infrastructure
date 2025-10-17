@@ -1,0 +1,197 @@
+# Prometheus Configuration
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  scrape_timeout: 10s
+  external_labels:
+    cluster: 'homelab'
+    environment: 'production'
+
+# Alertmanager configuration (optional - add later)
+# alerting:
+#   alertmanagers:
+#     - static_configs:
+#         - targets:
+#           - alertmanager:9093
+
+# Load alerting rules
+rule_files:
+  - '/etc/prometheus/rules/*.yml'
+
+# Scrape configurations
+scrape_configs:
+  # Prometheus itself
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+        labels:
+          instance: 'prometheus'
+          vm: 'vm3-observability'
+
+  # Grafana
+  - job_name: 'grafana'
+    static_configs:
+      - targets: ['grafana:3000']
+        labels:
+          instance: 'grafana'
+          vm: 'vm3-observability'
+
+  # Loki
+  - job_name: 'loki'
+    static_configs:
+      - targets: ['loki:3100']
+        labels:
+          instance: 'loki'
+          vm: 'vm3-observability'
+
+  # Alloy
+  - job_name: 'alloy'
+    static_configs:
+      - targets: ['alloy:12345']
+        labels:
+          instance: 'alloy'
+          vm: 'vm3-observability'
+
+  # Node Exporter - VM3
+  - job_name: 'node-exporter-vm3'
+    static_configs:
+      - targets: ['node-exporter:9100']
+        labels:
+          instance: 'vm3-observability'
+          vm: 'vm3-observability'
+
+  # cAdvisor - VM3 containers
+  - job_name: 'cadvisor-vm3'
+    static_configs:
+      - targets: ['cadvisor:8080']
+        labels:
+          instance: 'vm3-observability'
+          vm: 'vm3-observability'
+
+  # VM 1: Edge Services
+  - job_name: 'traefik'
+    static_configs:
+      - targets: ['10.10.10.10:8080']
+        labels:
+          instance: 'traefik'
+          vm: 'vm1-edge-services'
+
+  - job_name: 'node-exporter-vm1'
+    static_configs:
+      - targets: ['10.10.10.10:9100']
+        labels:
+          instance: 'vm1-edge-services'
+          vm: 'vm1-edge-services'
+
+  # VM 2: Data Tier
+  - job_name: 'postgres-exporter'
+    static_configs:
+      - targets: ['10.10.11.10:9187']
+        labels:
+          instance: 'postgres'
+          vm: 'vm2-data-tier'
+
+  - job_name: 'mongodb-exporter'
+    static_configs:
+      - targets: ['10.10.11.10:9216']
+        labels:
+          instance: 'mongodb'
+          vm: 'vm2-data-tier'
+
+  - job_name: 'redis-exporter'
+    static_configs:
+      - targets: ['10.10.11.10:9121']
+        labels:
+          instance: 'redis'
+          vm: 'vm2-data-tier'
+
+  - job_name: 'minio'
+    metrics_path: /minio/v2/metrics/cluster
+    scheme: https
+    tls_config:
+      insecure_skip_verify: true
+    static_configs:
+      - targets: ['10.10.11.10:9000']
+        labels:
+          instance: 'minio'
+          vm: 'vm2-data-tier'
+
+  - job_name: 'node-exporter-vm2'
+    static_configs:
+      - targets: ['10.10.11.10:9100']
+        labels:
+          instance: 'vm2-data-tier'
+          vm: 'vm2-data-tier'
+
+  # VM 4: Media & Automation
+  - job_name: 'sonarr'
+    static_configs:
+      - targets: ['10.10.12.10:9897']
+        labels:
+          instance: 'sonarr'
+          vm: 'vm4-media-automation'
+
+  - job_name: 'radarr'
+    static_configs:
+      - targets: ['10.10.12.10:9898']
+        labels:
+          instance: 'radarr'
+          vm: 'vm4-media-automation'
+
+  - job_name: 'prowlarr'
+    static_configs:
+      - targets: ['10.10.12.10:9899']
+        labels:
+          instance: 'prowlarr'
+          vm: 'vm4-media-automation'
+
+  - job_name: 'node-exporter-vm4'
+    static_configs:
+      - targets: ['10.10.12.10:9100']
+        labels:
+          instance: 'vm4-media-automation'
+          vm: 'vm4-media-automation'
+
+  # VM 5: Coolify
+  - job_name: 'coolify'
+    static_configs:
+      - targets: ['10.10.13.10:9090']
+        labels:
+          instance: 'coolify'
+          vm: 'vm5-coolify'
+
+  - job_name: 'node-exporter-vm5'
+    static_configs:
+      - targets: ['10.10.13.10:9100']
+        labels:
+          instance: 'vm5-coolify'
+          vm: 'vm5-coolify'
+
+  # VM 6: NAS
+  - job_name: 'nas'
+    static_configs:
+      - targets: ['10.10.10.30:9100']
+        labels:
+          instance: 'xpenology-nas'
+          vm: 'vm6-nas'
+
+  # VM 7: Home Assistant
+  - job_name: 'home-assistant'
+    metrics_path: /api/prometheus
+    bearer_token: 'YOUR_HOME_ASSISTANT_TOKEN'
+    static_configs:
+      - targets: ['10.10.30.10:8123']
+        labels:
+          instance: 'home-assistant'
+          vm: 'vm7-home-assistant'
+
+  # UniFi Controller (if available)
+  - job_name: 'unifi'
+    static_configs:
+      - targets: ['unifi.homelab.local:9130']
+        labels:
+          instance: 'unifi-controller'
+          device: 'network'
+
+  # Additional exporters can be added here

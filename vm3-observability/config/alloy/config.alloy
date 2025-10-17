@@ -1,0 +1,62 @@
+// Grafana Alloy Configuration
+// Collects logs and forwards to Loki
+
+// Loki endpoint
+loki.write "default" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+}
+
+// Docker container logs
+loki.source.docker "containers" {
+  host       = "unix:///var/run/docker.sock"
+  targets    = []
+  forward_to = [loki.process.add_labels.receiver]
+}
+
+// Process logs and add labels
+loki.process "add_labels" {
+  forward_to = [loki.write.default.receiver]
+
+  stage.docker {}
+
+  stage.labels {
+    values = {
+      container = "",
+      image     = "",
+      host      = "vm3-observability",
+    }
+  }
+}
+
+// System logs from /var/log
+loki.source.file "system_logs" {
+  targets = [
+    {
+      __path__ = "/var/log/syslog",
+      job      = "varlogs",
+      host     = "vm3-observability",
+    },
+    {
+      __path__ = "/var/log/auth.log",
+      job      = "auth",
+      host     = "vm3-observability",
+    },
+  ]
+  forward_to = [loki.write.default.receiver]
+}
+
+// OTLP receiver for traces (optional)
+otelcol.receiver.otlp "default" {
+  grpc {
+    endpoint = "0.0.0.0:4317"
+  }
+  http {
+    endpoint = "0.0.0.0:4318"
+  }
+
+  output {
+    logs    = [loki.write.default.receiver]
+  }
+}
