@@ -1,6 +1,3 @@
-# Environment variables (contains secrets)
-.env
-
 # Traefik data
 data/traefik/acme.json
 data/traefik/logs/

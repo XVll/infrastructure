@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  # PostgreSQL - Primary relational database
+  postgres:
+    image: postgres:16-alpine
+    container_name: postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: postgres
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256"
+    ports:
+      - "10.10.10.111:5432:5432"
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+      - /mnt/nas/backups/vm2-data-tier/postgres:/backups
+      - ./certs/postgres:/certs:ro
+      - ./config/postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+      - ./config/postgres/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
+    command: >
+      postgres
+      -c ssl=on
+      -c ssl_cert_file=/certs/server.crt
+      -c ssl_key_file=/certs/server.key
+      -c ssl_ca_file=/certs/ca.crt
+      -c config_file=/etc/postgresql/postgresql.conf
+      -c hba_file=/etc/postgresql/pg_hba.conf
+    networks:
+      - data_tier
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+          cpus: '2'
+        reservations:
+          memory: 2G
+          cpus: '1'
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  data_tier:
+    driver: bridge
+
+volumes:
+  postgres_data:

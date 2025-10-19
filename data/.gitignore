@@ -1,6 +1,3 @@
-# Environment variables (contains secrets)
-.env
-
 # Data directories (contains database files)
 data/
 backups/

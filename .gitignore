@@ -1,6 +1,5 @@
-# Environment files
-.env
-*.env
+# Environment files (now safe to commit - contains only op:// references)
+!.env
 !.env.example
 
 # Secrets and credentials

@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  # Komodo - Docker container management across all VMs
+  komodo:
+    image: ghcr.io/mbecker20/komodo:latest
+    container_name: komodo
+    restart: unless-stopped
+    ports:
+      - "10.10.10.112:9120:9120"
+    volumes:
+      - komodo_data:/data
+    environment:
+      # Optional: Set title for your installation
+      KOMODO_TITLE: "Homelab Infrastructure"
+      # First server will be this VM (observability)
+      KOMODO_FIRST_SERVER_NAME: "observability"
+      KOMODO_FIRST_SERVER_ADDRESS: "http://10.10.10.112:9120"
+    networks:
+      - observability
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '1'
+        reservations:
+          memory: 256M
+          cpus: '0.5'
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD", "wget", "--tries=1", "--spider", "http://localhost:9120/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  observability:
+    driver: bridge
+
+volumes:
+  komodo_data:

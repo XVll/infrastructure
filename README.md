@@ -16,20 +16,22 @@ This repository contains Infrastructure-as-Code for a complete homelab setup run
 
 | VM | Services | IP | Status |
 |----|----------|-----|--------|
-| VM1 | Traefik, AdGuard, Authentik | 10.10.10.10 | 🚧 Planned |
-| VM2 | PostgreSQL, MongoDB, Redis, MinIO | 10.10.10.11 | 🚧 Planned |
-| VM3 | Grafana, Prometheus, Loki | 10.10.10.12 | 🚧 Planned |
-| VM4 | Jellyfin, Arr Stack, n8n, Paperless | 10.10.10.13 | 🚧 Planned |
-| VM5 | Coolify (PaaS) | 10.10.10.14 | 🚧 Planned |
-| VM6 | Xpenology NAS (24TB) | 10.10.10.15 | ✅ Running |
-| VM7 | Home Assistant | 10.10.30.10 | ✅ Running |
-| VM8 | Proxmox Backup Server | 10.10.10.18 | 🚧 Planned |
+| edge | Traefik, AdGuard, Authentik | 10.10.10.110 | 🚧 Planned |
+| data | PostgreSQL, MongoDB, Redis, MinIO | 10.10.10.111 | 🚧 Planned |
+| observability | Grafana, Prometheus, Loki | 10.10.10.112 | 🚧 Planned |
+| media | Jellyfin, Arr Stack, n8n, Paperless | 10.10.10.113 | 🚧 Planned |
+| coolify | Coolify (PaaS) | 10.10.10.114 | 🚧 Planned |
+| nas | Xpenology NAS (24TB) | 10.10.10.115 | ✅ Running |
+| homeassistant | Home Assistant | 10.10.30.110 | ✅ Running |
+| pbs | Proxmox Backup Server | 10.10.10.118 | 🚧 Planned |
 
 ### Key Features
 
 - **Docker-First**: All services in containers with docker-compose
+- **Centralized Management**: Komodo web UI to manage all Docker containers
 - **Automated Backups**: Proxmox Backup Server with deduplication
 - **Centralized Auth**: Authentik SSO for all services
+- **Secrets Management**: 1Password Service Accounts for all credentials
 - **Full Observability**: Grafana + Prometheus + Loki for all VMs
 - **Simple Network**: All services on VLAN 10, IoT isolated on VLAN 30
 - **Smart Storage**: Hot data on ZFS, backups on NAS
@@ -54,6 +56,8 @@ The infrastructure plan includes:
 2. UniFi network with VLANs configured
 3. Git and Docker installed on VMs
 4. NAS storage accessible via NFS
+5. 1Password CLI installed (`brew install 1password-cli`)
+6. 1Password Service Account token configured
 
 ### Deploy a VM
 
@@ -61,22 +65,21 @@ The infrastructure plan includes:
 # Clone repository
 cd /opt
 git clone <repo-url> homelab
-cd homelab/vm2-data-tier
+cd homelab/data
 
-# Configure environment
-cp .env.example .env
-nano .env  # Set passwords
+# Setup 1Password CLI
+export OP_SERVICE_ACCOUNT_TOKEN="ops_your_token_here"
 
 # Generate TLS certificates (see VM README)
 cd certs/postgres && <generate certs>
 
 # Mount NAS storage
-echo "10.10.10.15:/volume1/backups /mnt/nas/backups nfs defaults,_netdev 0 0" | sudo tee -a /etc/fstab
+echo "10.10.10.115:/volume1/backups /mnt/nas/backups nfs defaults,_netdev 0 0" | sudo tee -a /etc/fstab
 sudo mount -a
 
-# Deploy services
-docker compose up -d
-docker compose logs -f
+# Deploy services (the .env file has 1Password references)
+op run --env-file=.env -- docker compose up -d
+op run --env-file=.env -- docker compose logs -f
 ```
 
 ## Repository Structure
@@ -86,12 +89,12 @@ infrastructure/
 ├── INFRASTRUCTURE-PLAN.md          ← Complete design document
 ├── README.md                       ← This file
 │
-├── vm1-edge-services/              ← Traefik, AdGuard, Authentik
-├── vm2-data-tier/                  ← Databases (PostgreSQL, MongoDB, Redis, MinIO)
-├── vm3-observability/              ← Monitoring (Grafana, Prometheus, Loki)
-├── vm4-media-automation/           ← Media & automation services
-├── vm5-coolify/                    ← PaaS platform
-├── vm8-pbs/                        ← Proxmox Backup Server setup
+├── edge/                           ← Traefik, AdGuard, Authentik
+├── data/                           ← Databases (PostgreSQL, MongoDB, Redis, MinIO)
+├── observability/                  ← Monitoring (Grafana, Prometheus, Loki)
+├── media/                          ← Media & automation services
+├── coolify/                        ← PaaS platform
+├── pbs/                            ← Proxmox Backup Server setup
 │
 └── scripts/                        ← Helper scripts
 ```
@@ -102,17 +105,24 @@ Each VM directory contains:
 - `config/` - Service configurations (git-tracked)
 - `README.md` - VM-specific documentation
 
-## Deployment Order
+## Progressive Deployment
 
-Deploy VMs in this order (dependencies):
+**Start with essentials, add services as needed:**
 
-1. **VM 6** (NAS) - Already running - Provides storage for backups
-2. **VM 8** (PBS) - Setup first - Enables automated backups
-3. **VM 2** (Data Tier) - Foundation - All other services need databases
-4. **VM 1** (Edge Services) - Core - Provides DNS, reverse proxy, SSO
-5. **VM 3** (Observability) - Monitoring - Track everything
-6. **VM 4** (Media) - Applications - Media and automation
-7. **VM 5** (Coolify) - Optional - Deploy web apps
+### Phase 1: Core Infrastructure (40 min)
+1. **observability** → Komodo (5 min) - Monitor everything!
+2. **data** → PostgreSQL (10 min) - Core database
+3. **edge** → Traefik (15 min) - Reverse proxy & SSL
+4. **media** → Jellyfin (10 min) - Optional but fun!
+
+### Phase 2: Expand As Needed
+5. **observability** → Grafana, Prometheus - When you want dashboards
+6. **data** → MongoDB, Redis, MinIO - When you need more databases
+7. **edge** → AdGuard, Authentik - When you need DNS & SSO
+8. **media** → Arr Stack - When you want automation
+9. **coolify** → PaaS - When you want to deploy web apps
+
+**See [QUICKSTART.md](./QUICKSTART.md) for step-by-step guide.**
 
 ## Network Design
 
@@ -171,23 +181,65 @@ NAS (24TB HDD via NFS)
 
 ## Maintenance
 
-### Update Services
+### Manage Containers
+
+Use **Komodo Web UI** (http://10.10.10.112:9120) to manage all containers across all VMs.
+
+Or use command line:
 
 ```bash
-cd /opt/homelab/vm2-data-tier
-docker compose pull
-docker compose up -d
-```
-
-### View Logs
-
-```bash
-docker compose logs -f [service-name]
+cd /opt/homelab/data
+op run --env-file=.env -- docker compose ps                 # Status
+op run --env-file=.env -- docker compose logs -f postgres   # Logs
+op run --env-file=.env -- docker compose restart redis      # Restart
+op run --env-file=.env -- docker compose pull && op run --env-file=.env -- docker compose up -d # Update
 ```
 
 ### Backup Status
 
-Check PBS web UI: `https://10.10.10.18:8007`
+Check PBS web UI: `https://10.10.10.118:8007`
+
+## Secrets Management
+
+This infrastructure uses **1Password Service Accounts** for all passwords, API keys, and secrets.
+
+### Setup
+
+```bash
+# Install 1Password CLI
+brew install 1password-cli
+
+# Set up service account (one-time)
+export OP_SERVICE_ACCOUNT_TOKEN="ops_your_token_here"
+# Make it permanent
+echo 'export OP_SERVICE_ACCOUNT_TOKEN="ops_..."' >> ~/.zshrc
+```
+
+### Usage
+
+All secrets are stored in 1Password and referenced in `.env` files.
+
+**In 1Password (Server vault):**
+- Store secrets (postgres, mongodb, redis, etc.)
+
+**In your VM:**
+The `.env` file contains 1Password references like:
+```
+POSTGRES_PASSWORD=op://Server/postgres/password
+```
+
+Use `op run` to inject secrets at runtime:
+```bash
+op run --env-file=.env -- docker compose up -d
+```
+
+### Benefits
+
+- ✅ No plaintext secrets in files or environment variables
+- ✅ Centralized secret management in 1Password
+- ✅ Audit trail of all secret access
+- ✅ Easy rotation - update in 1Password, redeploy
+- ✅ Works with scripts, CI/CD, and manual deployments
 
 ## Support
 

@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  # Traefik - Reverse proxy with automatic HTTPS
+  traefik:
+    image: traefik:v3.0
+    container_name: traefik
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      - CF_API_EMAIL=${CF_API_EMAIL}
+      - CF_DNS_API_TOKEN=${CF_DNS_API_TOKEN}
+    ports:
+      - "80:80"       # HTTP
+      - "443:443"     # HTTPS
+      - "8080:8080"   # Dashboard
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./config/traefik/traefik.yml:/traefik.yml:ro
+      - ./data/traefik/acme.json:/acme.json
+      - ./data/traefik/logs:/logs
+    networks:
+      - edge_network
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '1'
+        reservations:
+          memory: 128M
+          cpus: '0.5'
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD", "traefik", "healthcheck", "--ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+networks:
+  edge_network:
+    driver: bridge

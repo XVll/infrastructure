@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  # Jellyfin - Media Server
+  jellyfin:
+    image: jellyfin/jellyfin:latest
+    container_name: jellyfin
+    restart: unless-stopped
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=UTC
+      - JELLYFIN_PublishedServerUrl=https://jellyfin.homelab.example.com
+    ports:
+      - "10.10.10.113:8096:8096"      # Web UI
+      - "10.10.10.113:8920:8920"      # HTTPS (optional)
+      - "10.10.10.113:7359:7359/udp"  # Service discovery
+      - "10.10.10.113:1900:1900/udp"  # Service discovery
+    volumes:
+      - ./data/jellyfin/config:/config
+      - ./data/jellyfin/cache:/cache
+      - /mnt/nas/media/movies:/media/movies:ro
+      - /mnt/nas/media/tv:/media/tv:ro
+      - /mnt/nas/media/music:/media/music:ro
+    devices:
+      - /dev/dri:/dev/dri  # Hardware transcoding (Intel/AMD GPU)
+    networks:
+      - media_network
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+          cpus: '4'
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.jellyfin.rule=Host(`jellyfin.homelab.example.com`)"
+      - "traefik.http.routers.jellyfin.entrypoints=websecure"
+      - "traefik.http.routers.jellyfin.tls.certresolver=cloudflare"
+      - "traefik.http.services.jellyfin.loadbalancer.server.port=8096"
+
+networks:
+  media_network:
+    driver: bridge
+
+volumes:
+  jellyfin_config:
+  jellyfin_cache:

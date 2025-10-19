@@ -26,9 +26,10 @@ This homelab infrastructure follows these principles:
 2. **Simple Network Design**: All services on VLAN 10 (Trusted), with IoT and Guest isolated
 3. **Docker-First**: Services run in containers for portability and easy updates
 4. **Automated Backups**: Proxmox Backup Server handles VM snapshots, minimal scripting needed
-5. **Proper Storage Separation**: Hot data on ZFS, cold data (backups) on NAS
-6. **Single Command Deployment**: `git pull && docker compose up -d` per VM
-7. **Home-Friendly**: Secure but practical - no overly complex firewall rules
+5. **Secrets Management**: 1Password Service Accounts for all credentials - no plaintext secrets
+6. **Proper Storage Separation**: Hot data on ZFS, cold data (backups) on NAS
+7. **Single Command Deployment**: `op inject | docker compose up -d` per VM
+8. **Home-Friendly**: Secure but practical - no overly complex firewall rules
 
 ### Why This Approach?
 
@@ -69,42 +70,42 @@ PROXMOX HOST (AMD Ryzen 9 9900X, 64GB RAM, 2TB ZFS)
 │
 ├── VLAN 10 (Trusted - 10.10.10.0/24) ← ALL HOMELAB SERVICES
 │   │
-│   ├── VM 1: Edge Services (10.10.10.10)
+│   ├── edge: Edge Services (10.10.10.110)
 │   │   ├── Traefik (Reverse Proxy)
 │   │   ├── AdGuard Home (DNS)
 │   │   └── Authentik (SSO)
 │   │
-│   ├── VM 2: Data Tier (10.10.10.11)
+│   ├── data: Data Tier (10.10.10.111)
 │   │   ├── PostgreSQL
 │   │   ├── MongoDB
 │   │   ├── Redis
 │   │   └── MinIO (S3)
 │   │
-│   ├── VM 3: Observability (10.10.10.12)
+│   ├── observability: Observability (10.10.10.112)
 │   │   ├── Grafana + Prometheus
 │   │   ├── Loki
 │   │   └── Uptime Kuma
 │   │
-│   ├── VM 4: Media & Automation (10.10.10.13)
+│   ├── media: Media & Automation (10.10.10.113)
 │   │   ├── Sonarr, Radarr, Prowlarr, Jellyfin
 │   │   ├── qBittorrent
 │   │   ├── n8n, Paperless-ngx
 │   │   └── Kavita
 │   │
-│   ├── VM 5: Coolify (10.10.10.14)
+│   ├── coolify: Coolify (10.10.10.114)
 │   │   └── Self-hosted PaaS for web apps
 │   │
-│   ├── VM 6: Xpenology NAS (10.10.10.15)
+│   ├── nas: Xpenology NAS (10.10.10.115)
 │   │   └── 24TB bulk storage (backups, media)
 │   │
-│   ├── VM 8: Proxmox Backup Server (10.10.10.18)
+│   ├── pbs: Proxmox Backup Server (10.10.10.118)
 │   │   └── Automated VM backups with deduplication
 │   │
-│   └── Your devices (10.10.10.101-254)
+│   └── Your devices (10.10.10.101-109, 120-254)
 │       └── Laptops, phones, tablets
 │
 ├── VLAN 30 (IoT - 10.10.30.0/24) ← ISOLATED
-│   ├── VM 7: Home Assistant (10.10.30.10)
+│   ├── homeassistant: Home Assistant (10.10.30.110)
 │   └── Smart home devices (isolated from homelab)
 │
 ├── VLAN 40 (Guest - 10.10.40.0/24) ← INTERNET ONLY
@@ -133,19 +134,19 @@ PROXMOX HOST (AMD Ryzen 9 9900X, 64GB RAM, 2TB ZFS)
 
 #### VLAN 10 (Trusted) - All Homelab Services
 
-- `10.10.10.10` - VM 1: Edge Services (Traefik, AdGuard, Authentik)
-- `10.10.10.11` - VM 2: Data Tier (PostgreSQL, MongoDB, Redis, MinIO)
-- `10.10.10.12` - VM 3: Observability (Grafana, Prometheus, Loki)
-- `10.10.10.13` - VM 4: Media & Automation (Plex, Arr stack, n8n)
-- `10.10.10.14` - VM 5: Coolify (PaaS platform)
-- `10.10.10.15` - VM 6: Xpenology NAS (24TB storage)
-- `10.10.10.18` - VM 8: Proxmox Backup Server (PBS)
-- `10.10.10.101-254` - DHCP pool for your devices
+- `10.10.10.110` - edge: Edge Services (Traefik, AdGuard, Authentik)
+- `10.10.10.111` - data: Data Tier (PostgreSQL, MongoDB, Redis, MinIO)
+- `10.10.10.112` - observability: Observability (Grafana, Prometheus, Loki)
+- `10.10.10.113` - media: Media & Automation (Jellyfin, Arr stack, n8n)
+- `10.10.10.114` - coolify: Coolify (PaaS platform)
+- `10.10.10.115` - nas: Xpenology NAS (24TB storage)
+- `10.10.10.118` - pbs: Proxmox Backup Server (PBS)
+- `10.10.10.101-109, 120-254` - DHCP pool for your devices
 
 #### VLAN 30 (IoT)
 
-- `10.10.30.10` - VM 7: Home Assistant
-- `10.10.30.51-254` - Smart home devices
+- `10.10.30.110` - homeassistant: Home Assistant
+- `10.10.30.51-109, 120-254` - Smart home devices
 
 #### VLAN 60 (Management)
 
@@ -249,15 +250,15 @@ Understanding where data lives is critical for performance and space efficiency:
 Each VM that needs NAS storage will mount:
 
 ```bash
-# /etc/fstab on VM1, VM2, VM3, VM4
-10.10.10.15:/volume1/backups     /mnt/nas/backups     nfs defaults,_netdev 0 0
+# /etc/fstab on edge, data, observability, media
+10.10.10.115:/volume1/backups     /mnt/nas/backups     nfs defaults,_netdev 0 0
 
-# /etc/fstab on VM4 (Media VM) additionally mounts:
-10.10.10.15:/volume1/media       /mnt/nas/media       nfs defaults,_netdev 0 0
-10.10.10.15:/volume1/downloads   /mnt/nas/downloads   nfs defaults,_netdev 0 0
+# /etc/fstab on media VM additionally mounts:
+10.10.10.115:/volume1/media       /mnt/nas/media       nfs defaults,_netdev 0 0
+10.10.10.115:/volume1/downloads   /mnt/nas/downloads   nfs defaults,_netdev 0 0
 
-# /etc/fstab on VM8 (PBS) mounts:
-10.10.10.15:/volume1/backups-pbs /mnt/datastore       nfs defaults,_netdev 0 0
+# /etc/fstab on pbs VM mounts:
+10.10.10.115:/volume1/backups-pbs /mnt/datastore       nfs defaults,_netdev 0 0
 ```
 
 **Why This Works:**
@@ -274,14 +275,14 @@ Each VM that needs NAS storage will mount:
 
 | VM | Service | RAM | CPU | Disk | IP | Status |
 |----|---------|-----|-----|------|-----|--------|
-| VM 1 | Edge Services | 4GB | 2 | 30GB | 10.10.10.10 | 🚧 Planned |
-| VM 2 | Data Tier | 10GB | 4 | 100GB | 10.10.10.11 | 🚧 Planned |
-| VM 3 | Observability | 6GB | 4 | 80GB | 10.10.10.12 | 🚧 Planned |
-| VM 4 | Media & Automation | 16GB | 8 | 200GB | 10.10.10.13 | 🚧 Planned |
-| VM 5 | Coolify | 8GB | 4 | 100GB | 10.10.10.14 | 🚧 Planned |
-| VM 6 | Xpenology NAS | 4GB | 4 | 24TB | 10.10.10.15 | ✅ Running |
-| VM 7 | Home Assistant | 4GB | 2 | 32GB | 10.10.30.10 | ✅ Running |
-| VM 8 | Proxmox Backup Server | 4GB | 2 | 32GB | 10.10.10.18 | 🚧 Planned |
+| edge | Edge Services | 4GB | 2 | 30GB | 10.10.10.110 | 🚧 Planned |
+| data | Data Tier | 10GB | 4 | 100GB | 10.10.10.111 | 🚧 Planned |
+| observability | Observability | 6GB | 4 | 80GB | 10.10.10.112 | 🚧 Planned |
+| media | Media & Automation | 16GB | 8 | 200GB | 10.10.10.113 | 🚧 Planned |
+| coolify | Coolify | 8GB | 4 | 100GB | 10.10.10.114 | 🚧 Planned |
+| nas | Xpenology NAS | 4GB | 4 | 24TB | 10.10.10.115 | ✅ Running |
+| homeassistant | Home Assistant | 4GB | 2 | 32GB | 10.10.30.110 | ✅ Running |
+| pbs | Proxmox Backup Server | 4GB | 2 | 32GB | 10.10.10.118 | 🚧 Planned |
 | **TOTAL** | | **56GB** | **30** | **~24.7TB** | |
 | **AVAILABLE** | | **8GB** | (oversubscribed) | |
 
@@ -289,7 +290,7 @@ Each VM that needs NAS storage will mount:
 
 ### VM Details
 
-#### VM 1: Edge Services (10.10.10.10)
+#### edge: Edge Services (10.10.10.110)
 
 **OS**: Debian 12 + Docker
 **Purpose**: Internet-facing services, authentication gateway
@@ -301,12 +302,12 @@ Each VM that needs NAS storage will mount:
 
 **Database Connections:**
 ```bash
-# Authentik connects to VM2
-postgresql://authentik:PASSWORD@10.10.10.11:5432/authentik?sslmode=require
-redis://10.10.10.11:6379/0
+# Authentik connects to data VM
+postgresql://authentik:PASSWORD@10.10.10.111:5432/authentik?sslmode=require
+redis://10.10.10.111:6379/0
 ```
 
-#### VM 2: Data Tier (10.10.10.11)
+#### data: Data Tier (10.10.10.111)
 
 **OS**: Debian 12 + Docker
 **Purpose**: Centralized database layer for all applications
@@ -323,12 +324,13 @@ redis://10.10.10.11:6379/0
 - Per-application database users with least privilege
 - Automated backups to NAS
 
-#### VM 3: Observability (10.10.10.12)
+#### observability: Observability (10.10.10.112)
 
 **OS**: Debian 12 + Docker
-**Purpose**: Monitoring, metrics, logs, and uptime tracking
+**Purpose**: Monitoring, metrics, logs, and container management
 
 **Services:**
+- **Komodo**: Docker container management across all VMs
 - **Grafana**: Unified observability UI
 - **Prometheus**: Metrics storage (30-day retention)
 - **Loki**: Log aggregation with MinIO backend
@@ -340,7 +342,11 @@ redis://10.10.10.11:6379/0
 - Application metrics (database queries, HTTP latency)
 - Logs from all Docker containers
 
-#### VM 4: Media & Automation (10.10.10.13)
+**Access:**
+- Komodo: `http://10.10.10.112:9120`
+- Grafana: `https://grafana.homelab.local`
+
+#### media: Media & Automation (10.10.10.113)
 
 **OS**: Debian 12 + Docker
 **Purpose**: Media management, downloads, automation workflows
@@ -357,7 +363,7 @@ redis://10.10.10.11:6379/0
 - Media files: NAS NFS mount (`/mnt/nas/media`)
 - Downloads: NAS NFS mount (`/mnt/nas/downloads`)
 
-#### VM 5: Coolify (10.10.10.14)
+#### coolify: Coolify (10.10.10.114)
 
 **OS**: Ubuntu Server 22.04
 **Purpose**: Self-hosted PaaS for deploying web applications
@@ -371,13 +377,13 @@ redis://10.10.10.11:6379/0
 
 **Database Access:**
 ```bash
-# Web apps deployed in Coolify connect to VM2
-DATABASE_URL=postgresql://myapp:PASSWORD@10.10.10.11:5432/myapp?sslmode=require
-MONGODB_URL=mongodb://myapp:PASSWORD@10.10.10.11:27017/myapp?tls=true
-REDIS_URL=redis://10.10.10.11:6379/3
+# Web apps deployed in Coolify connect to data VM
+DATABASE_URL=postgresql://myapp:PASSWORD@10.10.10.111:5432/myapp?sslmode=require
+MONGODB_URL=mongodb://myapp:PASSWORD@10.10.10.111:27017/myapp?tls=true
+REDIS_URL=redis://10.10.10.111:6379/3
 ```
 
-#### VM 6: Xpenology NAS (10.10.10.15)
+#### nas: Xpenology NAS (10.10.10.115)
 
 **OS**: DSM 7 (Synology)
 **Purpose**: Bulk storage for media, backups, and file sharing
@@ -395,7 +401,7 @@ REDIS_URL=redis://10.10.10.11:6379/3
 /volume1/backups-pbs     → PBS datastore (VM snapshots)
 ```
 
-#### VM 7: Home Assistant (10.10.30.10)
+#### homeassistant: Home Assistant (10.10.30.110)
 
 **OS**: Home Assistant OS
 **VLAN**: 30 (IoT) - Isolated from homelab
@@ -406,7 +412,7 @@ REDIS_URL=redis://10.10.10.11:6379/3
 - Can reach internet for cloud integrations
 - Cannot access homelab services or management interfaces
 
-#### VM 8: Proxmox Backup Server (10.10.10.18)
+#### pbs: Proxmox Backup Server (10.10.10.118)
 
 **OS**: Proxmox Backup Server 3.x
 **Purpose**: Automated VM backups with deduplication and encryption
@@ -589,13 +595,40 @@ restic forget --keep-daily 7 --keep-weekly 4 --keep-monthly 12 --prune
 
 ### Secrets Management
 
-**Current Approach:** Environment variables in `.env` files (git-ignored)
+**Approach:** 1Password Service Accounts with CLI injection
 
-**Future Enhancement:** 1Password CLI with template injection
+All passwords, API keys, and secrets are stored in 1Password vault `Server` and injected at deployment time.
+
+**Setup:**
 ```bash
-# Templates with op://vault/item/field references
-op inject -i docker-compose.template.yml -o docker-compose.yml
+# Install 1Password CLI
+brew install 1password-cli
+
+# Configure service account
+export OP_SERVICE_ACCOUNT_TOKEN="ops_your_token_here"
+# Make permanent
+echo 'export OP_SERVICE_ACCOUNT_TOKEN="ops_..."' >> ~/.zshrc
 ```
+
+**Usage:**
+All docker-compose.yml files use secret references:
+```yaml
+environment:
+  POSTGRES_PASSWORD: "op://Server/postgres/password"
+  POSTGRES_USER: "op://Server/postgres/username"
+```
+
+Deploy with secret injection:
+```bash
+op inject -i docker-compose.yml | docker compose -f - up -d
+```
+
+**Benefits:**
+- ✅ No plaintext secrets in files, git, or environment variables
+- ✅ Centralized management - update in 1Password, redeploy
+- ✅ Full audit trail of all secret access
+- ✅ Easy rotation without editing files
+- ✅ Works everywhere (scripts, CI/CD, manual deployments)
 
 ---
 
