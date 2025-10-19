@@ -52,22 +52,32 @@ The infrastructure plan includes:
 
 ### Prerequisites
 
+**Infrastructure:**
 1. Proxmox VE installed and configured
 2. UniFi network with VLANs configured
-3. Git and Docker installed on VMs
-4. NAS storage accessible via NFS
-5. 1Password CLI installed (`brew install 1password-cli`)
-6. 1Password Service Account token configured
+3. NAS storage accessible via NFS
+
+**VM Template:**
+4. Create a VM template with Docker, Git, and 1Password CLI pre-installed
+5. See **[VM-TEMPLATE-SETUP.md](./VM-TEMPLATE-SETUP.md)** for detailed instructions
+
+**On Your Local Machine:**
+6. 1Password CLI installed (`brew install 1password-cli`)
+7. 1Password Service Account token configured
 
 ### Deploy a VM
 
 ```bash
-# Clone repository
+# If private repo, set up SSH key first:
+ssh-keygen -t ed25519 -C "homelab-vm" -f ~/.ssh/id_ed25519 -N ""
+cat ~/.ssh/id_ed25519.pub  # Add to GitHub/GitLab
+
+# Clone repository (git already configured in template!)
 cd /opt
-git clone <repo-url> homelab
+git clone git@github.com:yourusername/infrastructure-1.git homelab
 cd homelab/data
 
-# Setup 1Password CLI
+# Setup 1Password CLI (on your local machine or VM)
 export OP_SERVICE_ACCOUNT_TOKEN="ops_your_token_here"
 
 # Generate TLS certificates (see VM README)

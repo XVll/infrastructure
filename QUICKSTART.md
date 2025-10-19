@@ -4,10 +4,17 @@ Progressive deployment - build piece by piece, test as you go.
 
 ## Prerequisites
 
+### On Your Local Machine
 1. **1Password CLI** - `brew install 1password-cli`
 2. **Service Account Token** - `export OP_SERVICE_ACCOUNT_TOKEN="ops_..."`
-3. **VMs created** in Proxmox with IPs assigned
-4. **NAS running** at 10.10.10.115
+
+### On Each VM
+1. **VMs created** in Proxmox from template (see [VM-TEMPLATE-SETUP.md](./VM-TEMPLATE-SETUP.md))
+2. **NAS running** at 10.10.10.115
+
+Or if not using template:
+3. **Docker installed** - `curl -fsSL https://get.docker.com | sh`
+4. **Git configured** - `git config --global user.name "Homelab" && git config --global user.email "homelab@local"`
 
 ## Progressive Deployment Order
 
@@ -19,10 +26,17 @@ Deploy in this order from most to least important:
 
 ```bash
 # SSH to observability VM (10.10.10.112)
+
+# If private repo, set up SSH key first:
+ssh-keygen -t ed25519 -C "homelab-observability" -f ~/.ssh/id_ed25519 -N ""
+cat ~/.ssh/id_ed25519.pub  # Add this to GitHub/GitLab
+
+# Clone repository (git already configured if using template!)
 cd /opt
-git clone <repo-url> homelab
+git clone git@github.com:yourusername/infrastructure-1.git homelab
 cd homelab/observability
 
+# Deploy Komodo
 docker compose up -d
 ```
 
@@ -38,8 +52,14 @@ Now you can watch all deployments in real-time!
 
 ```bash
 # SSH to data VM (10.10.10.111)
+
+# If private repo, set up SSH key first:
+ssh-keygen -t ed25519 -C "homelab-data" -f ~/.ssh/id_ed25519 -N ""
+cat ~/.ssh/id_ed25519.pub  # Add this to GitHub/GitLab
+
+# Clone repository (git already configured if using template!)
 cd /opt
-git clone <repo-url> homelab
+git clone git@github.com:yourusername/infrastructure-1.git homelab
 cd homelab/data
 
 # Generate PostgreSQL certificates
@@ -71,6 +91,8 @@ op run --env-file=.env -- docker compose up -d
 
 ```bash
 # SSH to edge VM (10.10.10.110)
+
+# Clone repository (git already configured if using template!)
 cd /opt
 git clone <repo-url> homelab
 cd homelab/edge
@@ -102,6 +124,8 @@ op run --env-file=.env -- docker compose up -d
 
 ```bash
 # SSH to media VM (10.10.10.113)
+
+# Clone repository (git already configured if using template!)
 cd /opt
 git clone <repo-url> homelab
 cd homelab/media
