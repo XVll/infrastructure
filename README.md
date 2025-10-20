@@ -21,7 +21,7 @@ This homelab runs on Proxmox with Docker-based services across multiple VMs. The
 
 | VM | IP | Services | Status |
 |----|-----|----------|--------|
-| **data** | 10.10.10.111 | MongoDB, PostgreSQL, Redis, MinIO | Databases only - Start here |
+| **db** | 10.10.10.111 | MongoDB, PostgreSQL, Redis, MinIO | Databases only - Start here |
 | **observability** | 10.10.10.112 | Komodo, Prometheus, Grafana, Loki, Alloy | Build 2nd |
 | **edge** | 10.10.10.110 | Traefik, AdGuard, Authentik | Build 3rd |
 | **media** | 10.10.10.113 | Jellyfin, Arr Stack, n8n, Paperless | Build 4th |
@@ -33,7 +33,7 @@ This homelab runs on Proxmox with Docker-based services across multiple VMs. The
 
 ### Phase 1: Foundation (Start Here)
 
-**Step 1: Deploy on `data` host (10.10.10.111) - Databases Only**
+**Step 1: Deploy on `db` host (10.10.10.111) - Databases Only**
 
 1. **MongoDB** - Document database
    - Deploy: `op run --env-file=.env -- docker compose up -d mongodb`
@@ -85,7 +85,7 @@ This homelab runs on Proxmox with Docker-based services across multiple VMs. The
 
 ### Logical Host Separation
 
-- **data host**: Databases ONLY (MongoDB, PostgreSQL, Redis, MinIO)
+- **db host**: Databases ONLY (MongoDB, PostgreSQL, Redis, MinIO)
 - **observability host**: Komodo + monitoring stack (Prometheus, Grafana, Loki)
 - **edge host**: Reverse proxy, DNS, authentication
 - **media host**: Applications and workflows
@@ -144,24 +144,24 @@ op run --env-file=.env -- docker compose up -d mongodb
 5. 1Password CLI installed: `brew install 1password-cli`
 6. 1Password Service Account token configured
 
-### Deploy First VM (data) - Databases Only
+### Deploy First VM (db) - Databases Only
+
+**See [VM-SETUP-CHECKLIST.md](VM-SETUP-CHECKLIST.md) for complete setup guide.**
 
 ```bash
 # On your workstation
-ssh user@10.10.10.111
+ssh fx@10.10.10.111
 
-# Clone repo
-cd /opt
-git clone <your-repo-url> homelab
-cd homelab/data
+# Clone repo to VirtioFS mount
+cd /mnt/flash/docker/db
+git clone <your-repo-url> .
 
-# Copy .env and update if needed
-cp .env.example .env
+# Generate TLS certificates
+bash generate-certs.sh
 
-# Mount NAS
-sudo mkdir -p /mnt/nas/backups
-echo "10.10.10.115:/volume1/backups /mnt/nas/backups nfs defaults,_netdev 0 0" | sudo tee -a /etc/fstab
-sudo mount -a
+# Configure 1Password token
+echo 'export OP_SERVICE_ACCOUNT_TOKEN="ops_YOUR_TOKEN"' >> ~/.bashrc
+source ~/.bashrc
 
 # Deploy MongoDB (first service - required by Komodo)
 op run --env-file=.env -- docker compose up -d mongodb
@@ -177,15 +177,11 @@ docker exec -it mongodb mongosh --eval "db.adminCommand('ping')"
 
 ```bash
 # On your workstation
-ssh user@10.10.10.112
+ssh fx@10.10.10.112
 
-# Clone repo
-cd /opt
-git clone <your-repo-url> homelab
-cd homelab/observability
-
-# Copy .env and update if needed
-cp .env.example .env
+# Clone repo to VirtioFS mount
+cd /mnt/flash/docker/observability
+git clone <your-repo-url> .
 
 # Deploy Komodo (connects to MongoDB on data host)
 op run --env-file=.env -- docker compose up -d komodo
@@ -201,7 +197,7 @@ docker compose logs -f komodo
 
 1. Access Komodo web UI (http://10.10.10.112:9120) - create admin account
 2. Add all VM hosts as servers in Komodo UI
-3. Return to data host: uncomment PostgreSQL, Redis, MinIO one by one
+3. Return to db host: uncomment PostgreSQL, Redis, MinIO one by one
 4. Watch containers appear in Komodo as you deploy them
 5. Move to edge host (Traefik, AdGuard, Authentik)
 
@@ -211,12 +207,16 @@ docker compose logs -f komodo
 infrastructure/
 ├── DESIGN.md                  ← READ THIS FIRST
 ├── README.md                  ← This file
+├── VM-SETUP-CHECKLIST.md      ← Quick VM setup guide
 ├── VM-TEMPLATE-SETUP.md       ← VM preparation
 │
-├── data/
-│   ├── docker-compose.yml     ← Komodo + databases (uncomment as you build)
-│   ├── .env.example
-│   ├── config/                ← Service configs
+├── db/
+│   ├── docker-compose.yml     ← Databases (uncomment as you build)
+│   ├── .env
+│   ├── mongodb/               ← MongoDB data, config, certs
+│   ├── postgres/              ← PostgreSQL data, config, certs
+│   ├── redis/                 ← Redis data, certs
+│   ├── minio/                 ← MinIO data, certs
 │   └── README.md
 │
 ├── edge/
@@ -329,11 +329,12 @@ op run --env-file=.env -- docker compose up -d
 ## Next Steps
 
 1. ✅ Read [DESIGN.md](DESIGN.md) for complete build strategy
-2. ⏳ Prepare VM template: [VM-TEMPLATE-SETUP.md](VM-TEMPLATE-SETUP.md)
-3. ⏳ Deploy `data` VM: MongoDB first (databases only)
-4. ⏳ Deploy `observability` VM: Komodo first (connects to MongoDB)
-5. ⏳ Add PostgreSQL, Redis, MinIO to `data` VM
-6. ⏳ Add Prometheus, Grafana, Loki to `observability` VM
+2. ✅ Prepare VM template: [VM-TEMPLATE-SETUP.md](VM-TEMPLATE-SETUP.md)
+3. ⏳ Setup `db` VM: [VM-SETUP-CHECKLIST.md](VM-SETUP-CHECKLIST.md)
+4. ⏳ Deploy MongoDB on `db` VM (databases only)
+5. ⏳ Deploy Komodo on `observability` VM (connects to MongoDB)
+6. ⏳ Add PostgreSQL, Redis, MinIO to `db` VM
+7. ⏳ Add Prometheus, Grafana, Loki to `observability` VM
 7. ⏳ Deploy `edge` VM: Traefik, AdGuard, Authentik
 8. ⏳ Deploy `media` VM: Jellyfin, Arr Stack, n8n, Paperless
 9. ⏳ Deploy `coolify` VM: Coolify PaaS

@@ -1,30 +1,40 @@
-# Data Tier - Database Services
+# DB Host - Database Services
 
 Centralized database and storage layer for the homelab infrastructure.
 
 ## Overview
 
-**VM Name:** data
+**VM Name:** db
 **IP Address:** 10.10.10.111
-**Resources:** 10GB RAM, 4 CPU cores, 100GB storage
+**Resources:** 10GB RAM, 4 CPU cores
+**Storage:** VirtioFS mount at `/mnt/flash/docker/db` (ZFS-backed)
 **Network:** VLAN 10 (Trusted)
 
-## Available Services
+## Services
 
-| Service | Port | File |
-|---------|------|------|
-| PostgreSQL 16 | 5432 | `docker-compose.yml` (default) |
-| MongoDB 7 | 27017 | In `docker-compose.full.yml` |
-| Redis 7 | 6379 | In `docker-compose.full.yml` |
-| MinIO | 9000/9001 | In `docker-compose.full.yml` |
+| Service | Port | Status | Description |
+|---------|------|--------|-------------|
+| MongoDB 7 | 27017 | Deploy first | Required by Komodo |
+| PostgreSQL 16 | 5432 | Commented out | Relational database |
+| Redis 7 | 6379 | Commented out | Cache & sessions |
+| MinIO | 9000/9001 | Commented out | S3-compatible object storage |
 
-## Progressive Setup Approach
+## Progressive Build Strategy
 
-**Start with just PostgreSQL, then add services one by one as you need them.**
+**Build one service at a time:**
 
-See **[PROGRESSIVE-SETUP.md](./PROGRESSIVE-SETUP.md)** for step-by-step guide.
+1. ✅ MongoDB (required by Komodo on observability VM)
+2. ⏳ PostgreSQL (required by Authentik, Grafana, n8n, Paperless)
+3. ⏳ Redis (required by Authentik, Paperless)
+4. ⏳ MinIO (required by Loki for log storage)
 
-## Quick Start (PostgreSQL Only)
+Each service has its own directory with data, config, and certs subdirectories.
+
+## Quick Start
+
+### VM Setup
+
+**First time?** Follow [VM-SETUP-CHECKLIST.md](../VM-SETUP-CHECKLIST.md) for complete VM configuration.
 
 ### 1. Generate Certificates
 
