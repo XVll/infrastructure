@@ -1,7 +1,20 @@
 version: '3.8'
 
+# OBSERVABILITY HOST: Komodo + Monitoring Stack
+# Build services one at a time in this order:
+# 1. Komodo (container management - requires MongoDB from data host)
+# 2. Prometheus (metrics storage)
+# 3. Grafana (visualization)
+# 4. Loki (log aggregation - requires MinIO from data host)
+# 5. Alloy (metrics/logs collector)
+
 services:
-  # Komodo - Docker container management across all VMs
+  # ============================================================================
+  # 1. KOMODO - Container Management UI
+  # ============================================================================
+  # Deploy FIRST - requires MongoDB from data host (10.10.10.111:27017)
+  # Access: http://10.10.10.112:9120
+
   komodo:
     image: ghcr.io/mbecker20/komodo:latest
     container_name: komodo
@@ -9,37 +22,142 @@ services:
     ports:
       - "10.10.10.112:9120:9120"
     volumes:
-      - komodo_data:/data
+      - ./data/komodo:/data
     environment:
-      # Optional: Set title for your installation
       KOMODO_TITLE: "Homelab Infrastructure"
-      # First server will be this VM (observability)
-      KOMODO_FIRST_SERVER_NAME: "observability"
-      KOMODO_FIRST_SERVER_ADDRESS: "http://10.10.10.112:9120"
+      KOMODO_HOST: "http://10.10.10.112:9120"
+      # Connect to MongoDB on data host
+      KOMODO_MONGO_ADDRESS: "mongodb://${MONGODB_ROOT_USER}:${MONGODB_ROOT_PASSWORD}@10.10.10.111:27017"
+      KOMODO_MONGO_DB_NAME: "komodo"
     networks:
-      - observability
-    deploy:
-      resources:
-        limits:
-          memory: 512M
-          cpus: '1'
-        reservations:
-          memory: 256M
-          cpus: '0.5'
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
+      - obs_net
     healthcheck:
       test: ["CMD", "wget", "--tries=1", "--spider", "http://localhost:9120/health"]
       interval: 30s
       timeout: 10s
       retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ============================================================================
+  # 2. PROMETHEUS - Metrics Storage (COMING NEXT)
+  # ============================================================================
+  # Deploy second - no dependencies
+  # Access: http://10.10.10.112:9090
+
+  # prometheus:
+  #   image: prom/prometheus:latest
+  #   container_name: prometheus
+  #   restart: unless-stopped
+  #   command:
+  #     - '--config.file=/etc/prometheus/prometheus.yml'
+  #     - '--storage.tsdb.path=/prometheus'
+  #     - '--storage.tsdb.retention.time=30d'
+  #     - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+  #     - '--web.console.templates=/usr/share/prometheus/consoles'
+  #   ports:
+  #     - "10.10.10.112:9090:9090"
+  #   volumes:
+  #     - ./config/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+  #     - ./config/prometheus/rules:/etc/prometheus/rules:ro
+  #     - ./data/prometheus:/prometheus
+  #   networks:
+  #     - obs_net
+  #   healthcheck:
+  #     test: ["CMD", "wget", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+  #   logging:
+  #     driver: "json-file"
+  #     options:
+  #       max-size: "10m"
+  #       max-file: "3"
+
+  # ============================================================================
+  # 3. GRAFANA - Visualization & Dashboards (COMING NEXT)
+  # ============================================================================
+  # Deploy third - connects to Prometheus
+  # Access: http://10.10.10.112:3000
+
+  # grafana:
+  #   image: grafana/grafana:latest
+  #   container_name: grafana
+  #   restart: unless-stopped
+  #   environment:
+  #     - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER}
+  #     - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
+  #     - GF_SERVER_ROOT_URL=https://grafana.yourdomain.com
+  #     - GF_INSTALL_PLUGINS=grafana-clock-panel
+  #   ports:
+  #     - "10.10.10.112:3000:3000"
+  #   volumes:
+  #     - ./data/grafana:/var/lib/grafana
+  #     - ./config/grafana/provisioning:/etc/grafana/provisioning:ro
+  #   networks:
+  #     - obs_net
+  #   labels:
+  #     - "traefik.enable=true"
+  #     - "traefik.http.routers.grafana.rule=Host(`grafana.yourdomain.com`)"
+  #     - "traefik.http.routers.grafana.entrypoints=websecure"
+  #     - "traefik.http.routers.grafana.tls.certresolver=cloudflare"
+  #     - "traefik.http.services.grafana.loadbalancer.server.port=3000"
+
+  # ============================================================================
+  # 4. LOKI - Log Aggregation (COMING NEXT)
+  # ============================================================================
+  # Deploy fourth - requires MinIO from data host (10.10.10.111:9000)
+  # Access: http://10.10.10.112:3100
+
+  # loki:
+  #   image: grafana/loki:latest
+  #   container_name: loki
+  #   restart: unless-stopped
+  #   command: -config.file=/etc/loki/config.yml
+  #   ports:
+  #     - "10.10.10.112:3100:3100"
+  #   volumes:
+  #     - ./config/loki/config.yml:/etc/loki/config.yml:ro
+  #     - ./data/loki:/loki
+  #   networks:
+  #     - obs_net
+  #   healthcheck:
+  #     test: ["CMD", "wget", "--tries=1", "--spider", "http://localhost:3100/ready"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+
+  # ============================================================================
+  # 5. ALLOY - Metrics & Logs Collector (COMING NEXT)
+  # ============================================================================
+  # Deploy fifth - collects from all VMs, sends to Prometheus + Loki
+  # No web UI (runs as agent)
+
+  # alloy:
+  #   image: grafana/alloy:latest
+  #   container_name: alloy
+  #   restart: unless-stopped
+  #   command:
+  #     - run
+  #     - /etc/alloy/config.alloy
+  #     - --server.http.listen-addr=0.0.0.0:12345
+  #   ports:
+  #     - "10.10.10.112:12345:12345"  # Alloy web UI
+  #   volumes:
+  #     - ./config/alloy/config.alloy:/etc/alloy/config.alloy:ro
+  #     - /var/run/docker.sock:/var/run/docker.sock:ro
+  #   networks:
+  #     - obs_net
 
 networks:
-  observability:
+  obs_net:
     driver: bridge
 
 volumes:
   komodo_data:
+  # prometheus_data:
+  # grafana_data:
+  # loki_data:

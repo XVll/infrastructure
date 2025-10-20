@@ -1,7 +1,18 @@
 version: '3.8'
 
+# EDGE HOST: Traefik + AdGuard + Authentik
+# Build services one at a time in this order:
+# 1. Traefik (reverse proxy)
+# 2. AdGuard Home (DNS)
+# 3. Authentik (SSO - requires PostgreSQL + Redis from data host)
+
 services:
-  # Traefik - Reverse proxy with automatic HTTPS
+  # ============================================================================
+  # 1. TRAEFIK - Reverse Proxy & SSL Termination
+  # ============================================================================
+  # Deploy first - no dependencies
+  # Access: http://10.10.10.110:8080 (dashboard)
+
   traefik:
     image: traefik:v3.0
     container_name: traefik
@@ -19,29 +30,108 @@ services:
       - /etc/localtime:/etc/localtime:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./config/traefik/traefik.yml:/traefik.yml:ro
+      - ./config/traefik/dynamic:/dynamic:ro
       - ./data/traefik/acme.json:/acme.json
       - ./data/traefik/logs:/logs
     networks:
-      - edge_network
-    deploy:
-      resources:
-        limits:
-          memory: 512M
-          cpus: '1'
-        reservations:
-          memory: 128M
-          cpus: '0.5'
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
+      - edge_net
     healthcheck:
       test: ["CMD", "traefik", "healthcheck", "--ping"]
       interval: 10s
       timeout: 5s
       retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ============================================================================
+  # 2. ADGUARD HOME - DNS Server (COMING NEXT)
+  # ============================================================================
+  # Deploy second - no dependencies
+  # Access: http://10.10.10.110:3000 (setup) → http://10.10.10.110:80 (web UI)
+  # Remember to change router DNS to 10.10.10.110 after setup
+
+  # adguard:
+  #   image: adguard/adguardhome:latest
+  #   container_name: adguard
+  #   restart: unless-stopped
+  #   ports:
+  #     - "10.10.10.110:53:53/tcp"      # DNS
+  #     - "10.10.10.110:53:53/udp"      # DNS
+  #     - "10.10.10.110:3000:3000/tcp"  # Initial setup
+  #     - "10.10.10.110:80:80/tcp"      # Web interface (after setup)
+  #   volumes:
+  #     - ./data/adguard/work:/opt/adguardhome/work
+  #     - ./data/adguard/conf:/opt/adguardhome/conf
+  #   networks:
+  #     - edge_net
+
+  # ============================================================================
+  # 3. AUTHENTIK - SSO & Identity Provider (COMING NEXT)
+  # ============================================================================
+  # Deploy third - requires PostgreSQL + Redis from data host (10.10.10.111)
+  # Access: https://auth.yourdomain.com
+
+  # authentik-server:
+  #   image: ghcr.io/goauthentik/server:latest
+  #   container_name: authentik-server
+  #   restart: unless-stopped
+  #   command: server
+  #   environment:
+  #     AUTHENTIK_REDIS__HOST: 10.10.10.111
+  #     AUTHENTIK_REDIS__PORT: 6379
+  #     AUTHENTIK_REDIS__PASSWORD: ${REDIS_PASSWORD}
+  #     AUTHENTIK_POSTGRESQL__HOST: 10.10.10.111
+  #     AUTHENTIK_POSTGRESQL__PORT: 5432
+  #     AUTHENTIK_POSTGRESQL__NAME: authentik
+  #     AUTHENTIK_POSTGRESQL__USER: ${AUTHENTIK_DB_USER}
+  #     AUTHENTIK_POSTGRESQL__PASSWORD: ${AUTHENTIK_DB_PASSWORD}
+  #     AUTHENTIK_SECRET_KEY: ${AUTHENTIK_SECRET_KEY}
+  #   ports:
+  #     - "10.10.10.110:9000:9000"   # HTTP
+  #     - "10.10.10.110:9443:9443"   # HTTPS
+  #   volumes:
+  #     - ./data/authentik/media:/media
+  #     - ./data/authentik/custom-templates:/templates
+  #   networks:
+  #     - edge_net
+  #   labels:
+  #     - "traefik.enable=true"
+  #     - "traefik.http.routers.authentik.rule=Host(`auth.yourdomain.com`)"
+  #     - "traefik.http.routers.authentik.entrypoints=websecure"
+  #     - "traefik.http.routers.authentik.tls.certresolver=cloudflare"
+  #     - "traefik.http.services.authentik.loadbalancer.server.port=9000"
+
+  # authentik-worker:
+  #   image: ghcr.io/goauthentik/server:latest
+  #   container_name: authentik-worker
+  #   restart: unless-stopped
+  #   command: worker
+  #   environment:
+  #     AUTHENTIK_REDIS__HOST: 10.10.10.111
+  #     AUTHENTIK_REDIS__PORT: 6379
+  #     AUTHENTIK_REDIS__PASSWORD: ${REDIS_PASSWORD}
+  #     AUTHENTIK_POSTGRESQL__HOST: 10.10.10.111
+  #     AUTHENTIK_POSTGRESQL__PORT: 5432
+  #     AUTHENTIK_POSTGRESQL__NAME: authentik
+  #     AUTHENTIK_POSTGRESQL__USER: ${AUTHENTIK_DB_USER}
+  #     AUTHENTIK_POSTGRESQL__PASSWORD: ${AUTHENTIK_DB_PASSWORD}
+  #     AUTHENTIK_SECRET_KEY: ${AUTHENTIK_SECRET_KEY}
+  #   volumes:
+  #     - ./data/authentik/media:/media
+  #     - ./data/authentik/custom-templates:/templates
+  #     - ./data/authentik/certs:/certs
+  #   networks:
+  #     - edge_net
 
 networks:
-  edge_network:
+  edge_net:
     driver: bridge
+
+volumes:
+  traefik_data:
+  # adguard_work:
+  # adguard_conf:
+  # authentik_media:
