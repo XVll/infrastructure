@@ -13,7 +13,7 @@ services:
   # Access: mongodb://10.10.10.111:27017
 
   mongodb:
-    image: mongo:7
+    image: mongo:8
     container_name: mongodb
     restart: unless-stopped
     environment:
