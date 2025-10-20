@@ -22,9 +22,10 @@ services:
     ports:
       - "10.10.10.111:27017:27017"
     volumes:
-      - ./data/mongodb:/data/db
-      - ./config/mongodb/mongod.conf:/etc/mongod.conf:ro
-      - /mnt/nas/backups/data/mongodb:/backups
+      - ./mongodb/data:/data/db
+      - ./mongodb/config/mongod.conf:/etc/mongod.conf:ro
+      - ./mongodb/certs:/certs:ro
+      - /mnt/nas/backups/mongodb:/backups
     command: ["--config", "/etc/mongod.conf"]
     networks:
       - data_net
@@ -56,10 +57,11 @@ services:
   #   ports:
   #     - "10.10.10.111:5432:5432"
   #   volumes:
-  #     - ./data/postgres:/var/lib/postgresql/data
-  #     - ./config/postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
-  #     - ./config/postgres/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
-  #     - /mnt/nas/backups/data/postgres:/backups
+  #     - ./postgres/data:/var/lib/postgresql/data
+  #     - ./postgres/config/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+  #     - ./postgres/config/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
+  #     - ./postgres/certs:/certs:ro
+  #     - /mnt/nas/backups/postgres:/backups
   #   command: ["postgres", "-c", "config_file=/etc/postgresql/postgresql.conf"]
   #   networks:
   #     - data_net
@@ -93,8 +95,9 @@ services:
   #   ports:
   #     - "10.10.10.111:6379:6379"
   #   volumes:
-  #     - ./data/redis:/data
-  #     - /mnt/nas/backups/data/redis:/backups
+  #     - ./redis/data:/data
+  #     - ./redis/certs:/certs:ro
+  #     - /mnt/nas/backups/redis:/backups
   #   networks:
   #     - data_net
   #   healthcheck:
@@ -126,8 +129,9 @@ services:
   #     - "10.10.10.111:9000:9000"  # S3 API
   #     - "10.10.10.111:9001:9001"  # Web Console
   #   volumes:
-  #     - ./data/minio:/data
-  #     - /mnt/nas/backups/data/minio:/backups
+  #     - ./minio/data:/data
+  #     - ./minio/certs:/certs:ro
+  #     - /mnt/nas/backups/minio:/backups
   #   networks:
   #     - data_net
   #   healthcheck:

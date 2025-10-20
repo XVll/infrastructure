@@ -9,7 +9,7 @@ SERVICES=("postgres" "mongodb" "redis" "minio")
 for service in "${SERVICES[@]}"; do
     echo "Generating certificates for $service..."
 
-    CERT_DIR="certs/$service"
+    CERT_DIR="$service/certs"
     mkdir -p "$CERT_DIR"
     cd "$CERT_DIR"
 
@@ -116,11 +116,11 @@ echo "=== Certificate Summary ==="
 echo
 for service in "${SERVICES[@]}"; do
     echo "$service:"
-    echo "  CA:     certs/$service/ca.crt"
-    echo "  Cert:   certs/$service/server.crt"
-    echo "  Key:    certs/$service/server.key"
+    echo "  CA:     $service/certs/ca.crt"
+    echo "  Cert:   $service/certs/server.crt"
+    echo "  Key:    $service/certs/server.key"
     if [ "$service" == "mongodb" ]; then
-        echo "  PEM:    certs/$service/server.pem"
+        echo "  PEM:    $service/certs/server.pem"
     fi
 done
 

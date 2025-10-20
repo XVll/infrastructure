@@ -1,13 +1,26 @@
 # Data directories (contains database files)
-data/
-backups/
+mongodb/data/
+postgres/data/
+redis/data/
+minio/data/
 
 # TLS certificates and keys
-certs/*/server.key
-certs/*/server.crt
-certs/*/server.pem
-certs/*/ca.key
-certs/*/ca.crt
+mongodb/certs/*.key
+mongodb/certs/*.crt
+mongodb/certs/*.pem
+mongodb/certs/*.srl
+postgres/certs/*.key
+postgres/certs/*.crt
+postgres/certs/*.pem
+postgres/certs/*.srl
+redis/certs/*.key
+redis/certs/*.crt
+redis/certs/*.pem
+redis/certs/*.srl
+minio/certs/*.key
+minio/certs/*.crt
+minio/certs/*.pem
+minio/certs/*.srl
 
 # Logs
 *.log
