@@ -1,139 +1,47 @@
-# Media - Jellyfin & Arr Stack
+# Media Host
 
-Media server and automation for movies, TV shows, and music.
+Media server, automation, and workflow services.
 
-## Overview
+## Services
 
-**VM Name:** media
-**IP Address:** 10.10.10.113
-**Resources:** 16GB RAM, 8 CPU cores, 200GB storage
-**Network:** VLAN 10 (Trusted)
+| Service | Port | Deploy Order | Purpose |
+|---------|------|--------------|---------|
+| Jellyfin | 8096 | 1st | Media server |
+| Prowlarr | 9696 | 2nd | Indexer manager |
+| Sonarr | 8989 | 3rd | TV automation |
+| Radarr | 7878 | 4th | Movie automation |
+| qBittorrent | 8080 | 5th | Download client |
+| n8n | 5678 | 6th | Workflow automation |
+| Paperless-ngx | 8000 | 7th | Document management |
 
-## Available Services
-
-| Service | Port | Status |
-|---------|------|--------|
-| **Jellyfin** | 8096 | ← **Start here!** |
-| Sonarr | 8989 | In `docker-compose.full.yml` |
-| Radarr | 7878 | In `docker-compose.full.yml` |
-| Prowlarr | 9696 | In `docker-compose.full.yml` |
-| qBittorrent | 8080 | In `docker-compose.full.yml` |
-| n8n | 5678 | In `docker-compose.full.yml` |
-| Paperless-ngx | 8000 | In `docker-compose.full.yml` |
-
-## Progressive Setup
-
-**Start with Jellyfin, add automation later.**
-
-## Quick Start (Jellyfin Only)
-
-### 1. Mount NAS Media
+## Quick Start
 
 ```bash
-# Create mount point
-sudo mkdir -p /mnt/nas/media
+# Deploy Jellyfin first
+cd /opt/homelab
+op run --env-file=.env -- docker compose up -d jellyfin
 
-# Add to /etc/fstab
-echo "10.10.10.115:/volume1/media /mnt/nas/media nfs defaults,_netdev 0 0" | sudo tee -a /etc/fstab
+# Access Jellyfin
+open http://10.10.10.113:8096
 
-# Mount
-sudo mount -a
+# Deploy Arr stack in order
+op run --env-file=.env -- docker compose up -d prowlarr
+op run --env-file=.env -- docker compose up -d sonarr radarr qbittorrent
+
+# Deploy workflow apps
+op run --env-file=.env -- docker compose up -d n8n paperless
 ```
 
-### 2. Verify Media Folders
+## Arr Stack Setup
 
-```bash
-ls -la /mnt/nas/media/
-# Should see: movies/, tv/, music/
-```
+1. **Prowlarr**: Configure indexers
+2. **Sonarr/Radarr**: Add Prowlarr as indexer source
+3. **qBittorrent**: Configure in Sonarr/Radarr as download client
+4. **Jellyfin**: Add media folders, enable automatic scanning
 
-### 3. Deploy Jellyfin
+## Notes
 
-```bash
-# Jellyfin doesn't need secrets, so no op run needed
-docker compose up -d
-docker compose logs -f
-```
-
-### 4. Access Jellyfin
-
-**Direct:** http://10.10.10.113:8096
-**Via Traefik:** https://jellyfin.homelab.example.com
-
-**Initial Setup:**
-1. Create admin account
-2. Add media libraries:
-   - Movies: `/media/movies`
-   - TV Shows: `/media/tv`
-   - Music: `/media/music`
-3. Configure hardware transcoding (if available)
-4. Set up users
-
-That's it! Start watching your media.
-
-## Adding Automation (Arr Stack)
-
-When you're ready to automate downloads:
-
-1. See `docker-compose.full.yml` for Sonarr, Radarr, Prowlarr
-2. Copy services you need to `docker-compose.yml`
-3. Deploy: `docker compose up -d`
-
-**Setup order:**
-1. Prowlarr (indexer management)
-2. qBittorrent (download client)
-3. Sonarr (TV shows)
-4. Radarr (movies)
-
-## File Structure
-
-```
-media/
-├── docker-compose.yml          # Jellyfin only (start here!)
-├── docker-compose.full.yml     # All media services
-├── dc                          # Docker-compose wrapper
-│
-└── data/
-    ├── jellyfin/              # Jellyfin config
-    ├── sonarr/                # (when added)
-    ├── radarr/                # (when added)
-    └── qbittorrent/           # (when added)
-```
-
-## Monitoring
-
-**Komodo:** http://10.10.10.112:9120
-**Jellyfin:** http://10.10.10.113:8096
-
-## Troubleshooting
-
-**No media showing:**
-```bash
-# Check NFS mount
-mount | grep media
-ls -la /mnt/nas/media/movies
-
-# Check Jellyfin logs
-docker compose logs jellyfin
-```
-
-**Hardware transcoding not working:**
-```bash
-# Check if GPU is available
-ls -la /dev/dri
-# Should see renderD128 or similar
-
-# In Jellyfin: Dashboard → Playback → Enable Hardware Acceleration
-```
-
-## Next Steps
-
-1. ✅ **Jellyfin running** - You're done with Phase 1!
-2. 🚧 **Add media** - Copy files to `/mnt/nas/media/`
-3. 🚧 **Add Arr stack** - When you want automation (Phase 2)
-4. 🚧 **Add n8n** - When you want workflows (Phase 3)
-
----
-
-**Start with:** Jellyfin only (already configured!)
-**Access:** https://jellyfin.homelab.example.com
+- All apps use PUID/PGID for NAS file permissions
+- n8n requires PostgreSQL on db host
+- Paperless requires PostgreSQL + Redis on db host
+- Media files stored on NAS via VirtioFS

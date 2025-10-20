@@ -1,351 +1,377 @@
 # Homelab Infrastructure
 
-> Clean, progressive infrastructure build with Komodo management
-
-## Quick Links
-
-- **[DESIGN.md](DESIGN.md)** - Complete design & build strategy (READ THIS FIRST)
-- **[VM-TEMPLATE-SETUP.md](VM-TEMPLATE-SETUP.md)** - Prepare VM templates
-
-## Overview
-
-This homelab runs on Proxmox with Docker-based services across multiple VMs. The approach is simple: **one service at a time, tested thoroughly**.
-
-### Hardware
-
-- **Host**: AMD Ryzen 9 9900X, 64GB DDR5, ASUS ProArt X870-E
-- **Storage**: 2TB ZFS (VMs + databases), 24TB NAS (media + backups)
-- **Network**: UniFi Dream Machine + Pro Max Switch
-
-### VMs & Services
-
-| VM | IP | Services | Status |
-|----|-----|----------|--------|
-| **db** | 10.10.10.111 | MongoDB, PostgreSQL, Redis, MinIO | Databases only - Start here |
-| **observability** | 10.10.10.112 | Komodo, Prometheus, Grafana, Loki, Alloy | Build 2nd |
-| **edge** | 10.10.10.110 | Traefik, AdGuard, Authentik | Build 3rd |
-| **media** | 10.10.10.113 | Jellyfin, Arr Stack, n8n, Paperless | Build 4th |
-| **coolify** | 10.10.10.114 | Coolify (PaaS) | Build 5th |
-| **nas** | 10.10.10.115 | NAS Storage | Running |
-| **pbs** | 10.10.10.118 | Proxmox Backup Server | Planned |
-
-## Build Strategy
-
-### Phase 1: Foundation (Start Here)
-
-**Step 1: Deploy on `db` host (10.10.10.111) - Databases Only**
-
-1. **MongoDB** - Document database
-   - Deploy: `op run --env-file=.env -- docker compose up -d mongodb`
-   - Required by Komodo in next step
-
-2. **PostgreSQL** - Relational database (uncomment in docker-compose.yml)
-3. **Redis** - Cache & sessions (uncomment in docker-compose.yml)
-4. **MinIO** - Object storage (uncomment in docker-compose.yml)
-
-**Step 2: Deploy on `observability` host (10.10.10.112) - Komodo First**
-
-1. **Komodo** - Container management web UI
-   - Access: http://10.10.10.112:9120
-   - Deploy: `op run --env-file=.env -- docker compose up -d komodo`
-   - Connects to MongoDB on data host
-   - Configure servers in web UI to manage all VMs
-
-2. **Prometheus** - Metrics (uncomment in docker-compose.yml)
-3. **Grafana** - Dashboards (uncomment in docker-compose.yml)
-4. **Loki** - Logs (uncomment, connects to MinIO on data host)
-5. **Alloy** - Collector (uncomment in docker-compose.yml)
-
-**Result**: Databases centralized, Komodo watching everything
-
-### Phase 2: Edge Services
-
-**Deploy on `edge` host (10.10.10.110):**
-
-1. **Traefik** - Reverse proxy + SSL
-2. **AdGuard Home** - DNS server (uncomment in docker-compose.yml)
-3. **Authentik** - SSO (uncomment, connects to PostgreSQL + Redis on data host)
-
-### Phase 3: Applications
-
-**Deploy on `media` host (10.10.10.113):**
-
-1. **Jellyfin** - Media server
-2. **Prowlarr, Sonarr, Radarr, qBittorrent** - Media automation (uncomment in docker-compose.yml)
-3. **n8n** - Workflows (uncomment, connects to PostgreSQL on data host)
-4. **Paperless** - Documents (uncomment, connects to PostgreSQL + Redis on data host)
-
-### Phase 4: PaaS
-
-**Deploy on `coolify` host (10.10.10.114):**
-
-1. **Coolify** - Deploy custom web apps (connects to all databases on data host)
-
-## Key Features
-
-### Logical Host Separation
-
-- **db host**: Databases ONLY (MongoDB, PostgreSQL, Redis, MinIO)
-- **observability host**: Komodo + monitoring stack (Prometheus, Grafana, Loki)
-- **edge host**: Reverse proxy, DNS, authentication
-- **media host**: Applications and workflows
-- No mixing of concerns - clean separation
-
-### Shared Infrastructure
-
-All services reuse centralized resources:
-
-```yaml
-# Any service connecting to PostgreSQL
-DATABASE_URL: postgresql://user:pass@10.10.10.111:5432/dbname
-
-# Any service connecting to MongoDB
-MONGO_URL: mongodb://user:pass@10.10.10.111:27017/dbname
-
-# Any service connecting to Redis
-REDIS_URL: redis://10.10.10.111:6379/0
-
-# Any service connecting to MinIO (S3)
-S3_ENDPOINT: http://10.10.10.111:9000
-```
-
-### Progressive Build
-
-Each VM has ONE `docker-compose.yml` with services commented out. Build incrementally:
-
-```bash
-# Step 1: Deploy first service
-op run --env-file=.env -- docker compose up -d komodo
-
-# Step 2: Uncomment next service in docker-compose.yml
-nano docker-compose.yml  # Uncomment mongodb section
-
-# Step 3: Deploy next service
-op run --env-file=.env -- docker compose up -d mongodb
-
-# Step 4: Test, verify in Komodo, then repeat
-```
-
-### Security
-
-- **Secrets**: All passwords in 1Password, injected with `op run`
-- **Network**: Services on VLAN 10, IoT isolated on VLAN 30
-- **TLS**: Traefik handles SSL for all services
-- **Backups**: Proxmox Backup Server (PBS) for VM snapshots
+> Progressive Docker-based infrastructure on Proxmox with centralized management
 
 ## Quick Start
 
+1. **[VM-TEMPLATE-SETUP.md](VM-TEMPLATE-SETUP.md)** - One-time template creation
+2. **[1PASSWORD-SETUP.md](1PASSWORD-SETUP.md)** - Configure secrets management
+3. **Follow this README** - Deploy services progressively
+
+---
+
+## Hardware & Network
+
+**Hardware:**
+- AMD Ryzen 9 9900X, 64GB DDR5, ASUS ProArt X870-E
+- 2TB NVMe ZFS pool (VMs + databases)
+- 24TB Synology NAS (media + bulk storage)
+
+**Network:**
+- UniFi Dream Machine + Pro Max Switch
+- VLAN 10 (10.10.10.0/24): All homelab services
+- VLAN 30 (10.10.30.0/24): IoT (isolated)
+- VLAN 60 (10.10.60.0/24): Management (Proxmox, UniFi)
+
+---
+
+## Architecture
+
+### VMs & Services
+
+| VM | IP | Services | Purpose |
+|----|-----|----------|---------|
+| **db** | 10.10.10.111 | MongoDB, PostgreSQL, Redis, MinIO | Centralized databases |
+| **observability** | 10.10.10.112 | Komodo, Prometheus, Grafana, Loki | Monitoring & management |
+| **edge** | 10.10.10.110 | Traefik, AdGuard, Authentik | Reverse proxy, DNS, SSO |
+| **media** | 10.10.10.113 | Jellyfin, Arr Stack, n8n, Paperless | Media & automation |
+| **coolify** | 10.10.10.114 | Coolify | PaaS for custom apps |
+
+### Storage Strategy
+
+**Proxmox Host:**
+```
+/flash/docker/homelab/          ← Single git repo
+├── db/                         ← MongoDB, PostgreSQL, Redis, MinIO
+├── observability/              ← Komodo, Prometheus, Grafana, Loki
+├── edge/                       ← Traefik, AdGuard, Authentik
+├── media/                      ← Jellyfin, Arr Stack, n8n
+└── coolify/                    ← Coolify PaaS
+```
+
+**Each VM:**
+- VirtioFS mounts its subdirectory to `/opt/homelab`
+- All work happens in `/opt/homelab`
+- Data stored on fast ZFS (Proxmox host)
+- VMs are stateless and disposable
+
+---
+
+## Progressive Build Order
+
+### Phase 1: Foundation
+
+**1. Deploy MongoDB on `db` (10.10.10.111)**
+   - Required by Komodo
+   - Deploy first, test before continuing
+
+**2. Deploy Komodo on `observability` (10.10.10.112)**
+   - Web UI for managing all containers
+   - Access: http://10.10.10.112:9120
+   - Connects to MongoDB on db host
+
+**3. Add remaining databases to `db`**
+   - PostgreSQL (required by Authentik, Grafana, n8n)
+   - Redis (required by Authentik, Paperless)
+   - MinIO (required by Loki for log storage)
+
+### Phase 2: Edge Services
+
+**4. Deploy Traefik on `edge` (10.10.10.110)**
+   - Reverse proxy with automatic SSL
+   - Deploy before other web apps
+
+**5. Deploy AdGuard Home on `edge`**
+   - Network-wide DNS filtering
+   - Configure as primary DNS in router
+
+**6. Deploy Authentik on `edge`**
+   - Single sign-on for all services
+   - Requires PostgreSQL + Redis from db host
+
+### Phase 3: Observability
+
+**7. Add monitoring stack to `observability`**
+   - Prometheus (metrics)
+   - Grafana (dashboards)
+   - Loki (logs, requires MinIO)
+   - Alloy (collector)
+
+### Phase 4: Applications
+
+**8. Deploy media services on `media` (10.10.10.113)**
+   - Jellyfin → Prowlarr → Sonarr/Radarr → qBittorrent
+   - n8n (workflows)
+   - Paperless (documents)
+
+**9. Deploy Coolify on `coolify` (10.10.10.114)**
+   - Self-hosted PaaS for custom apps
+
+---
+
+## VM Setup Guide
+
 ### Prerequisites
 
-1. Proxmox VE installed
-2. NAS running at 10.10.10.115
-3. UniFi network with VLANs configured
-4. VM template created ([VM-TEMPLATE-SETUP.md](VM-TEMPLATE-SETUP.md))
-5. 1Password CLI installed: `brew install 1password-cli`
-6. 1Password Service Account token configured
+- Proxmox VE 8.x installed
+- Debian 13 VM template created ([VM-TEMPLATE-SETUP.md](VM-TEMPLATE-SETUP.md))
+- 1Password CLI configured ([1PASSWORD-SETUP.md](1PASSWORD-SETUP.md))
+- Git repo cloned on Proxmox: `/flash/docker/homelab`
 
-### Deploy First VM (db) - Databases Only
+### Creating a New VM
 
-**See [VM-SETUP-CHECKLIST.md](VM-SETUP-CHECKLIST.md) for complete setup guide.**
+**On Proxmox Host:**
 
 ```bash
-# On your workstation
-ssh fx@10.10.10.111
+# 1. Clone from template
+qm clone <template-id> <new-vm-id> --name db
 
-# Clone repo to VirtioFS mount
-cd /mnt/flash/docker/db
-git clone <your-repo-url> .
+# 2. Configure VM
+qm set <new-vm-id> \
+  --memory 4096 \
+  --cores 2 \
+  --ipconfig0 ip=10.10.10.111/24,gw=10.10.10.1
 
-# Generate TLS certificates
-bash generate-certs.sh
+# 3. Add VirtioFS mount (points to repo subdirectory)
+qm set <new-vm-id> --virtfs0 /flash/docker/homelab/db,mp=docker-vm
 
-# Configure 1Password token
+# 4. Start VM
+qm start <new-vm-id>
+```
+
+**Inside the VM:**
+
+```bash
+# 1. Set hostname
+sudo hostnamectl set-hostname db
+
+# 2. Create mount point and mount VirtioFS
+sudo mkdir -p /opt/homelab
+sudo mount -t virtiofs docker-vm /opt/homelab
+
+# 3. Add to /etc/fstab for persistence
+echo 'docker-vm /opt/homelab virtiofs defaults 0 0' | sudo tee -a /etc/fstab
+
+# 4. Configure 1Password service account token
 echo 'export OP_SERVICE_ACCOUNT_TOKEN="ops_YOUR_TOKEN"' >> ~/.bashrc
 source ~/.bashrc
 
-# Deploy MongoDB (first service - required by Komodo)
+# 5. Test 1Password
+op read "op://Server/mongodb/username"
+
+# 6. Navigate to working directory
+cd /opt/homelab
+
+# 7. Deploy first service
 op run --env-file=.env -- docker compose up -d mongodb
-
-# Check logs
-docker compose logs -f mongodb
-
-# Test connection
-docker exec -it mongodb mongosh --eval "db.adminCommand('ping')"
 ```
 
-### Deploy Second VM (observability) - Komodo
+---
+
+## Database Connections
+
+All services connect to centralized databases on the `db` host:
+
+```yaml
+# PostgreSQL
+DATABASE_URL: postgresql://user:pass@10.10.10.111:5432/dbname
+
+# MongoDB
+MONGO_URL: mongodb://user:pass@10.10.10.111:27017/dbname
+
+# Redis
+REDIS_URL: redis://10.10.10.111:6379/0
+
+# MinIO (S3)
+S3_ENDPOINT: http://10.10.10.111:9000
+```
+
+---
+
+## Common Operations
+
+### Deploying a Service
 
 ```bash
-# On your workstation
-ssh fx@10.10.10.112
+# SSH into VM
+ssh fx@10.10.10.111
 
-# Clone repo to VirtioFS mount
-cd /mnt/flash/docker/observability
-git clone <your-repo-url> .
+# Navigate to working directory
+cd /opt/homelab
 
-# Deploy Komodo (connects to MongoDB on data host)
-op run --env-file=.env -- docker compose up -d komodo
+# Deploy service
+op run --env-file=.env -- docker compose up -d <service-name>
 
 # Check logs
-docker compose logs -f komodo
+docker compose logs -f <service-name>
 
-# Access web UI
+# Check status in Komodo
 # Open: http://10.10.10.112:9120
 ```
 
-### Continue Building
+### Updating Services
 
-1. Access Komodo web UI (http://10.10.10.112:9120) - create admin account
-2. Add all VM hosts as servers in Komodo UI
-3. Return to db host: uncomment PostgreSQL, Redis, MinIO one by one
-4. Watch containers appear in Komodo as you deploy them
-5. Move to edge host (Traefik, AdGuard, Authentik)
+```bash
+# Pull latest images
+docker compose pull
+
+# Recreate containers
+op run --env-file=.env -- docker compose up -d
+
+# Or update specific service
+docker compose pull <service-name>
+op run --env-file=.env -- docker compose up -d <service-name>
+```
+
+### Updating Configuration
+
+```bash
+# On Proxmox host
+cd /flash/docker/homelab
+git pull
+
+# Changes are immediately available on all VMs via VirtioFS
+# Restart affected services on each VM
+```
+
+---
+
+## Service Dependencies
+
+```
+Level 0 (No Dependencies):
+├── MongoDB
+├── PostgreSQL
+├── Redis
+├── MinIO
+├── Traefik
+└── AdGuard Home
+
+Level 1 (Depends on Level 0):
+├── Komodo → MongoDB
+├── Authentik → PostgreSQL, Redis
+├── Prometheus → (standalone)
+├── Loki → MinIO
+└── Jellyfin → NAS
+
+Level 2 (Depends on Level 0-1):
+├── Grafana → Prometheus, PostgreSQL (optional)
+├── Alloy → Prometheus, Loki
+├── Arr Stack → Traefik, Jellyfin
+├── n8n → PostgreSQL
+├── Paperless → PostgreSQL, Redis
+└── Coolify → PostgreSQL, MongoDB, Redis
+```
+
+---
+
+## Security
+
+**Secrets Management:**
+- All passwords stored in 1Password
+- Injected at runtime with `op run`
+- No plaintext secrets in git
+
+**Network Security:**
+- IoT VLAN isolated from homelab
+- Traefik handles SSL for all web services
+- Authentik provides SSO
+
+**Backup Strategy:**
+- Database backups via proper tools (mongodump, pg_dump)
+- Proxmox Backup Server for VM snapshots
+- NAS for media and bulk storage
+
+---
+
+## Troubleshooting
+
+### Container won't start
+```bash
+# Check logs
+docker compose logs <service-name>
+
+# Check if port is already in use
+sudo netstat -tulpn | grep <port>
+
+# Verify secrets are loading
+op run --env-file=.env -- env | grep PASSWORD
+```
+
+### Can't access /opt/homelab
+```bash
+# Check if VirtioFS is mounted
+mount | grep virtiofs
+
+# Remount if needed
+sudo mount -a
+
+# Check fstab entry
+cat /etc/fstab | grep docker-vm
+```
+
+### 1Password errors
+```bash
+# Verify token is set
+echo $OP_SERVICE_ACCOUNT_TOKEN
+
+# Test connection
+op vault list
+
+# Check item exists
+op item list --vault Server
+```
+
+---
 
 ## Repository Structure
 
 ```
-infrastructure/
-├── DESIGN.md                  ← READ THIS FIRST
-├── README.md                  ← This file
-├── VM-SETUP-CHECKLIST.md      ← Quick VM setup guide
-├── VM-TEMPLATE-SETUP.md       ← VM preparation
+homelab/
+├── README.md                   ← This file
+├── VM-TEMPLATE-SETUP.md        ← One-time template setup
+├── 1PASSWORD-SETUP.md          ← Secrets management setup
 │
-├── db/
-│   ├── docker-compose.yml     ← Databases (uncomment as you build)
+├── db/                         ← Database services
+│   ├── docker-compose.yml
 │   ├── .env
-│   ├── mongodb/               ← MongoDB data, config, certs
-│   ├── postgres/              ← PostgreSQL data, config, certs
-│   ├── redis/                 ← Redis data, certs
-│   ├── minio/                 ← MinIO data, certs
-│   └── README.md
+│   ├── mongodb/
+│   ├── postgres/
+│   ├── redis/
+│   └── minio/
 │
-├── edge/
-│   ├── docker-compose.yml     ← Traefik + AdGuard + Authentik
+├── observability/              ← Monitoring & management
+│   ├── docker-compose.yml
+│   ├── .env
 │   └── config/
 │
-├── observability/
-│   ├── docker-compose.yml     ← Prometheus + Grafana + Loki
+├── edge/                       ← Reverse proxy, DNS, auth
+│   ├── docker-compose.yml
+│   ├── .env
 │   └── config/
 │
-├── media/
-│   ├── docker-compose.yml     ← Jellyfin + Arr Stack + n8n + Paperless
+├── media/                      ← Media & automation
+│   ├── docker-compose.yml
+│   ├── .env
 │   └── config/
 │
-└── coolify/
-    └── README.md              ← Installation notes
+└── coolify/                    ← PaaS
+    └── README.md
 ```
-
-## Network Design
-
-### VLANs
-
-| VLAN | Name | Subnet | Purpose |
-|------|------|--------|---------|
-| 10 | Trusted | 10.10.10.0/24 | All homelab services |
-| 30 | IoT | 10.10.30.0/24 | Home Assistant (isolated) |
-| 60 | Management | 10.10.60.0/24 | Proxmox, UniFi |
-
-### Firewall Rules (UniFi)
-
-Only 3 rules needed:
-
-1. **Block IoT → Trusted**: Drop VLAN 30 → VLAN 10
-2. **Allow IoT → Internet**: Accept VLAN 30 → Internet
-3. **Block Guest → Local**: Drop VLAN 40 → 10.10.0.0/16
-
-Everything else: default allow. Simple and secure.
-
-## Storage Strategy
-
-```
-Proxmox Host (2TB ZFS)
-├── VM disks
-└── Docker volumes (databases)
-
-NAS (24TB via NFS)
-├── /volume1/media          → Jellyfin
-├── /volume1/downloads      → Arr Stack
-├── /volume1/backups        → Application backups
-└── /volume1/backups-pbs    → PBS datastore
-```
-
-**Rule**: Hot data on ZFS, cold data on NAS.
-
-## Secrets Management
-
-All secrets stored in **1Password** vault named `Server`:
-
-```bash
-# Install 1Password CLI
-brew install 1password-cli
-
-# Set service account token (one-time)
-export OP_SERVICE_ACCOUNT_TOKEN="ops_your_token_here"
-echo 'export OP_SERVICE_ACCOUNT_TOKEN="ops_..."' >> ~/.zshrc
-
-# Store secrets in 1Password (create items):
-# - Server/mongodb (username, password)
-# - Server/postgres (username, password)
-# - Server/redis (password)
-# - Server/minio (username, password)
-
-# Deploy with secret injection
-op run --env-file=.env -- docker compose up -d
-```
-
-## Maintenance
-
-### Manage Containers
-
-Use **Komodo Web UI** (http://10.10.10.112:9120) for:
-- View all containers across all VMs
-- Start/stop/restart services
-- View logs
-- Execute commands
-- Trigger deployments
-
-Or use command line:
-
-```bash
-cd /opt/homelab/data
-op run --env-file=.env -- docker compose ps
-op run --env-file=.env -- docker compose logs -f mongodb
-op run --env-file=.env -- docker compose restart redis
-op run --env-file=.env -- docker compose pull && docker compose up -d
-```
-
-### Update Services
-
-```bash
-# Pull new images
-op run --env-file=.env -- docker compose pull
-
-# Recreate containers with new images
-op run --env-file=.env -- docker compose up -d
-
-# Check Komodo for status
-```
-
-## Next Steps
-
-1. ✅ Read [DESIGN.md](DESIGN.md) for complete build strategy
-2. ✅ Prepare VM template: [VM-TEMPLATE-SETUP.md](VM-TEMPLATE-SETUP.md)
-3. ⏳ Setup `db` VM: [VM-SETUP-CHECKLIST.md](VM-SETUP-CHECKLIST.md)
-4. ⏳ Deploy MongoDB on `db` VM (databases only)
-5. ⏳ Deploy Komodo on `observability` VM (connects to MongoDB)
-6. ⏳ Add PostgreSQL, Redis, MinIO to `db` VM
-7. ⏳ Add Prometheus, Grafana, Loki to `observability` VM
-7. ⏳ Deploy `edge` VM: Traefik, AdGuard, Authentik
-8. ⏳ Deploy `media` VM: Jellyfin, Arr Stack, n8n, Paperless
-9. ⏳ Deploy `coolify` VM: Coolify PaaS
-
-## Support
-
-- **Issues**: Track in GitHub Issues
-- **Docs**: All documentation in `DESIGN.md`
-- **Per-VM Guides**: Check each VM's `README.md`
 
 ---
 
-**Status**: Ready to build progressively
+## Next Steps
+
+1. ✅ Create VM template: [VM-TEMPLATE-SETUP.md](VM-TEMPLATE-SETUP.md)
+2. ✅ Configure 1Password: [1PASSWORD-SETUP.md](1PASSWORD-SETUP.md)
+3. ⏳ Create `db` VM and deploy MongoDB
+4. ⏳ Create `observability` VM and deploy Komodo
+5. ⏳ Add PostgreSQL, Redis, MinIO to `db`
+6. ⏳ Create `edge` VM and deploy Traefik
+7. ⏳ Continue progressive build...
+
+---
+
+**Status**: Ready for deployment
 **Last Updated**: 2025-01-20

@@ -1,144 +1,49 @@
-# Edge Services - Reverse Proxy, DNS & SSO
+# Edge Host
 
-Internet-facing services that route and secure traffic to your homelab.
+Reverse proxy, DNS, and authentication services.
 
-## Overview
+## Services
 
-**VM Name:** edge
-**IP Address:** 10.10.10.110
-**Resources:** 4GB RAM, 2 CPU cores, 30GB storage
-**Network:** VLAN 10 (Trusted)
+| Service | Port | Deploy Order | Purpose |
+|---------|------|--------------|---------|
+| Traefik | 80/443 | 1st | Reverse proxy + SSL |
+| AdGuard Home | 53/3001 | 2nd | DNS filtering |
+| Authentik | 9000/9443 | 3rd | SSO/authentication |
 
-## Available Services
-
-| Service | Port | Status |
-|---------|------|--------|
-| **Traefik** | 80, 443, 8080 | ← **Start here!** |
-| AdGuard Home | 53, 3000 | In `docker-compose.full.yml` |
-| Authentik | 9000 | In `docker-compose.full.yml` |
-
-## Progressive Setup
-
-**Start with Traefik, add others as needed.**
-
-See **[PROGRESSIVE-SETUP.md](./PROGRESSIVE-SETUP.md)** for detailed guide.
-
-## Quick Start (Traefik Only)
-
-### 1. Create Cloudflare 1Password Secret
+## Quick Start
 
 ```bash
-op item create --category=login --title=cloudflare \
-  --vault=Server \
-  email=your-email@example.com \
-  'api_token=your-cloudflare-api-token'
+# Deploy Traefik first
+cd /opt/homelab
+op run --env-file=.env -- docker compose up -d traefik
+
+# Access Traefik dashboard
+open http://10.10.10.110:8080
+
+# Deploy AdGuard and Authentik
+op run --env-file=.env -- docker compose up -d adguard
+op run --env-file=.env -- docker compose up -d authentik
 ```
 
-**Get Cloudflare API token:**
-- Cloudflare → My Profile → API Tokens → Create Token
-- Template: "Edit zone DNS"
-- Copy token
+## Configuration
 
-### 2. Update Traefik Config
+### Traefik
+- Automatic SSL with Let's Encrypt
+- Configured for Cloudflare DNS challenge
+- Dashboard: http://10.10.10.110:8080
 
-Edit `config/traefik/traefik.yml` - update your email for Let's Encrypt.
+### AdGuard Home
+- Set as primary DNS in UniFi controller
+- Admin interface: http://10.10.10.110:3001
+- Configure local DNS entries for homelab services
 
-### 3. Create acme.json
+### Authentik
+- Requires PostgreSQL + Redis on db host
+- Web UI: http://10.10.10.110:9000
+- Configure SSO for services via Traefik forward auth
 
-```bash
-touch data/traefik/acme.json
-chmod 600 data/traefik/acme.json
-```
+## Notes
 
-### 4. Deploy
-
-```bash
-op run --env-file=.env -- docker compose up -d
-op run --env-file=.env -- docker compose logs -f
-```
-
-The `.env` file already contains 1Password references for Cloudflare credentials.
-
-### 5. Access Dashboard
-
-http://10.10.10.110:8080
-
-That's it! Traefik is running and ready to route traffic.
-
-## What Traefik Does
-
-- **Automatic HTTPS** - Let's Encrypt certificates via Cloudflare DNS
-- **Reverse Proxy** - Routes traffic to your services
-- **Service Discovery** - Automatically detects Docker containers
-- **Middlewares** - Authentication, rate limiting, headers
-
-## Adding Services
-
-When you deploy other services (Grafana, Jellyfin, etc.), add Traefik labels:
-
-```yaml
-labels:
-  - "traefik.enable=true"
-  - "traefik.http.routers.myapp.rule=Host(`myapp.homelab.example.com`)"
-  - "traefik.http.routers.myapp.entrypoints=websecure"
-  - "traefik.http.routers.myapp.tls.certresolver=cloudflare"
-```
-
-Traefik automatically:
-- Creates route for the domain
-- Requests SSL certificate
-- Routes HTTPS traffic to your service
-
-## File Structure
-
-```
-edge/
-├── docker-compose.yml          # Traefik only (start here!)
-├── docker-compose.full.yml     # All edge services
-├── PROGRESSIVE-SETUP.md        # Step-by-step guide
-├── dc                          # Docker-compose wrapper
-│
-├── config/
-│   └── traefik/
-│       ├── traefik.yml         # Main config
-│       └── dynamic/            # Dynamic config (middlewares)
-│
-└── data/
-    ├── traefik/
-    │   ├── acme.json          # SSL certificates (generated)
-    │   └── logs/
-    └── adguard/               # (when you add AdGuard)
-```
-
-## Monitoring
-
-**Komodo:** http://10.10.10.112:9120
-**Traefik Dashboard:** http://10.10.10.110:8080
-
-## Troubleshooting
-
-**Traefik won't start:**
-```bash
-op run --env-file=.env -- docker compose logs traefik
-ls -la data/traefik/acme.json  # Should be 600
-cat .env  # Check 1Password references
-op read "op://Server/cloudflare/api_token"  # Test 1Password connection
-```
-
-**SSL not working:**
-```bash
-op run --env-file=.env -- docker compose logs traefik | grep acme
-# Check Cloudflare API token permissions
-```
-
-## Next Steps
-
-1. ✅ **Traefik running** - You're done with Phase 1!
-2. 🚧 **Deploy other services** - They'll use Traefik for routing
-3. 🚧 **Add AdGuard** - When you want network-wide ad blocking (Phase 2)
-4. 🚧 **Add Authentik** - When you need SSO (Phase 3)
-
----
-
-**Start with:** Traefik only (already configured!)
-**Next:** See [PROGRESSIVE-SETUP.md](./PROGRESSIVE-SETUP.md) for adding AdGuard & Authentik
+- Deploy Traefik before other web services
+- AdGuard setup wizard runs on first access
+- Authentik connects to db host (10.10.10.111)
