@@ -1,4 +1,3 @@
-version: '3.8'
 
 # MEDIA HOST: Jellyfin + Arr Stack + n8n + Paperless
 # Build services one at a time in this order:

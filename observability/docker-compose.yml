@@ -1,4 +1,3 @@
-version: '3.8'
 
 # OBSERVABILITY HOST: Komodo + Monitoring Stack
 # Build services one at a time in this order:
