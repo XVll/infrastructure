@@ -95,62 +95,78 @@ services:
         max-file: "3"
 
   # ============================================================================
-  # 3. AUTHENTIK - SSO & Identity Provider (COMING NEXT)
+  # 3. AUTHENTIK - SSO & Identity Provider
   # ============================================================================
-  # Deploy third - requires PostgreSQL + Redis from data host (10.10.10.111)
-  # Access: https://auth.yourdomain.com
+  # Deploy third - requires PostgreSQL + Redis from db host (10.10.10.111)
+  # Access: https://auth.onurx.com (via Traefik)
+  # Routed via: traefik/config/dynamic/routers.yml
 
-  # authentik-server:
-  #   image: ghcr.io/goauthentik/server:latest
-  #   container_name: authentik-server
-  #   restart: unless-stopped
-  #   command: server
-  #   environment:
-  #     AUTHENTIK_REDIS__HOST: 10.10.10.111
-  #     AUTHENTIK_REDIS__PORT: 6379
-  #     AUTHENTIK_REDIS__PASSWORD: ${REDIS_PASSWORD}
-  #     AUTHENTIK_POSTGRESQL__HOST: 10.10.10.111
-  #     AUTHENTIK_POSTGRESQL__PORT: 5432
-  #     AUTHENTIK_POSTGRESQL__NAME: authentik
-  #     AUTHENTIK_POSTGRESQL__USER: ${AUTHENTIK_DB_USER}
-  #     AUTHENTIK_POSTGRESQL__PASSWORD: ${AUTHENTIK_DB_PASSWORD}
-  #     AUTHENTIK_SECRET_KEY: ${AUTHENTIK_SECRET_KEY}
-  #   ports:
-  #     - "10.10.10.110:9000:9000"   # HTTP
-  #     - "10.10.10.110:9443:9443"   # HTTPS
-  #   volumes:
-  #     - ./authentik/data/media:/media
-  #     - ./authentik/data/custom-templates:/templates
-  #   networks:
-  #     - edge_net
-  #   labels:
-  #     - "traefik.enable=true"
-  #     - "traefik.http.routers.authentik.rule=Host(`auth.yourdomain.com`)"
-  #     - "traefik.http.routers.authentik.entrypoints=websecure"
-  #     - "traefik.http.routers.authentik.tls.certresolver=cloudflare"
-  #     - "traefik.http.services.authentik.loadbalancer.server.port=9000"
+  authentik-server:
+    image: ghcr.io/goauthentik/server:latest
+    container_name: authentik-server
+    restart: unless-stopped
+    command: server
+    environment:
+      # Redis connection (db host)
+      AUTHENTIK_REDIS__HOST: 10.10.10.111
+      AUTHENTIK_REDIS__PORT: 6379
+      AUTHENTIK_REDIS__PASSWORD: ${REDIS_PASSWORD}
+      # PostgreSQL connection (db host)
+      AUTHENTIK_POSTGRESQL__HOST: 10.10.10.111
+      AUTHENTIK_POSTGRESQL__PORT: 5432
+      AUTHENTIK_POSTGRESQL__NAME: authentik
+      AUTHENTIK_POSTGRESQL__USER: ${AUTHENTIK_DB_USER}
+      AUTHENTIK_POSTGRESQL__PASSWORD: ${AUTHENTIK_DB_PASSWORD}
+      # Authentik configuration
+      AUTHENTIK_SECRET_KEY: ${AUTHENTIK_SECRET_KEY}
+      AUTHENTIK_ERROR_REPORTING__ENABLED: "false"
+      AUTHENTIK_DISABLE_UPDATE_CHECK: "true"
+      AUTHENTIK_AVATARS: "initials"
+    ports:
+      - "10.10.10.110:9000:9000"   # HTTP (for Traefik backend)
+    volumes:
+      - ./authentik/data/media:/media
+      - ./authentik/data/custom-templates:/templates
+    networks:
+      - edge_net
+    depends_on:
+      - authentik-worker
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
-  # authentik-worker:
-  #   image: ghcr.io/goauthentik/server:latest
-  #   container_name: authentik-worker
-  #   restart: unless-stopped
-  #   command: worker
-  #   environment:
-  #     AUTHENTIK_REDIS__HOST: 10.10.10.111
-  #     AUTHENTIK_REDIS__PORT: 6379
-  #     AUTHENTIK_REDIS__PASSWORD: ${REDIS_PASSWORD}
-  #     AUTHENTIK_POSTGRESQL__HOST: 10.10.10.111
-  #     AUTHENTIK_POSTGRESQL__PORT: 5432
-  #     AUTHENTIK_POSTGRESQL__NAME: authentik
-  #     AUTHENTIK_POSTGRESQL__USER: ${AUTHENTIK_DB_USER}
-  #     AUTHENTIK_POSTGRESQL__PASSWORD: ${AUTHENTIK_DB_PASSWORD}
-  #     AUTHENTIK_SECRET_KEY: ${AUTHENTIK_SECRET_KEY}
-  #   volumes:
-  #     - ./authentik/data/media:/media
-  #     - ./authentik/data/custom-templates:/templates
-  #     - ./authentik/certs:/certs
-  #   networks:
-  #     - edge_net
+  authentik-worker:
+    image: ghcr.io/goauthentik/server:latest
+    container_name: authentik-worker
+    restart: unless-stopped
+    command: worker
+    environment:
+      # Redis connection (db host)
+      AUTHENTIK_REDIS__HOST: 10.10.10.111
+      AUTHENTIK_REDIS__PORT: 6379
+      AUTHENTIK_REDIS__PASSWORD: ${REDIS_PASSWORD}
+      # PostgreSQL connection (db host)
+      AUTHENTIK_POSTGRESQL__HOST: 10.10.10.111
+      AUTHENTIK_POSTGRESQL__PORT: 5432
+      AUTHENTIK_POSTGRESQL__NAME: authentik
+      AUTHENTIK_POSTGRESQL__USER: ${AUTHENTIK_DB_USER}
+      AUTHENTIK_POSTGRESQL__PASSWORD: ${AUTHENTIK_DB_PASSWORD}
+      # Authentik configuration
+      AUTHENTIK_SECRET_KEY: ${AUTHENTIK_SECRET_KEY}
+      AUTHENTIK_ERROR_REPORTING__ENABLED: "false"
+      AUTHENTIK_DISABLE_UPDATE_CHECK: "true"
+    volumes:
+      - ./authentik/data/media:/media
+      - ./authentik/data/custom-templates:/templates
+    networks:
+      - edge_net
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 networks:
   edge_net:

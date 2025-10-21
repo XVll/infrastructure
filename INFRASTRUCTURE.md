@@ -121,16 +121,125 @@ All `*.onurx.com` domains → `10.10.10.110`:
 
 ### Authentik (SSO)
 
-**Status:** Not deployed yet
+**Status:** Ready to deploy
 
 **Dependencies:** PostgreSQL + Redis on db host (10.10.10.111)
 
-**Deploy After:** AdGuard (so DNS resolution works)
+**Access:** `https://auth.onurx.com` (via Traefik)
 
-**Protected Services:** All services use `authentik` middleware except:
+## Pre-Deployment: Setup 1Password Secrets
+
+**Create these items in 1Password "Server" vault:**
+
+1. **authentik-db** (PostgreSQL user password)
+   - Field: `password` (generate strong password)
+
+2. **authentik** (Authentik secret key)
+   - Field: `secret_key` (generate with: `openssl rand -base64 50`)
+
+**Verify secrets:**
+```bash
+op read "op://Server/redis/password"
+op read "op://Server/authentik-db/password"
+op read "op://Server/authentik/secret_key"
+```
+
+## Pre-Deployment: Create PostgreSQL Database
+
+**On db host (10.10.10.111):**
+```bash
+# SSH to db host
+ssh root@10.10.10.111
+cd /opt/homelab
+
+# Create database and user
+docker exec -it postgres psql -U postgres
+```
+
+**In PostgreSQL shell:**
+```sql
+-- Create user
+CREATE USER authentik WITH PASSWORD 'paste_password_from_1password_here';
+
+-- Create database
+CREATE DATABASE authentik OWNER authentik;
+
+-- Grant privileges
+GRANT ALL PRIVILEGES ON DATABASE authentik TO authentik;
+
+-- Exit
+\q
+```
+
+**Test connection from edge VM:**
+```bash
+# On edge VM (10.10.10.110)
+psql -h 10.10.10.111 -U authentik -d authentik
+# Enter password from 1Password
+# Should connect successfully
+```
+
+## Deployment
+
+**On edge VM (10.10.10.110):**
+```bash
+cd /opt/homelab
+
+# Deploy Authentik (server + worker)
+op run --env-file=.env -- docker compose up -d authentik-server authentik-worker
+
+# Check logs
+docker compose logs -f authentik-server
+docker compose logs -f authentik-worker
+
+# Should see:
+# - Database migrations running
+# - Worker starting
+# - Server ready
+```
+
+## Initial Setup
+
+**Access:** `https://auth.onurx.com`
+
+**First-time setup wizard:**
+1. Create admin account (email + password)
+2. Complete setup
+
+**After setup:**
+- Configure outpost for Traefik forward auth
+- Create applications for each service
+- Configure authentication flows
+
+## Protected Services
+
+Services using `authentik` middleware (configured in `routers.yml`):
+- grafana, sonarr, radarr, prowlarr, jellyfin
+- qbittorrent, n8n, paperless, coolify
+- minio console
+
+**Not protected:**
 - Authentik itself (auth.onurx.com) - no self-auth
 - Portainer - has own auth
 - MinIO S3 API (s3.onurx.com) - programmatic access
+
+## Troubleshooting
+
+**Database connection errors:**
+```bash
+# Verify database exists on db host
+docker exec -it postgres psql -U postgres -c "\l" | grep authentik
+
+# Test connection from edge VM
+psql -h 10.10.10.111 -U authentik -d authentik
+```
+
+**Redis connection errors:**
+```bash
+# Test Redis from edge VM
+docker run --rm redis:alpine redis-cli -h 10.10.10.111 -a $(op read "op://Server/redis/password") ping
+# Should return: PONG
+```
 
 ---
 
@@ -326,6 +435,8 @@ sudo shutdown -h now
 - `minio` - fields: username, password
 - `grafana` - fields: username, password
 - `cloudflare` - fields: email, api_token
+- `authentik-db` - field: password (PostgreSQL user password)
+- `authentik` - field: secret_key (generate with: `openssl rand -base64 50`)
 
 **Verify setup:**
 ```bash
