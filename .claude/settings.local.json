@@ -17,7 +17,8 @@
       "Bash(then rm -rf data/)",
       "Bash(cp:*)",
       "WebFetch(domain:komo.do)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []

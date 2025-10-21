@@ -2,22 +2,51 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## CRITICAL DOCUMENTATION RULES
+
+**SINGLE SOURCE OF TRUTH: Use INFRASTRUCTURE.md ONLY**
+
+1. **NEVER create new .md files** for documentation, notes, or deployment instructions
+2. **ALWAYS update INFRASTRUCTURE.md** when:
+   - A service is deployed or configured
+   - Important decisions are made
+   - Quick reference notes are needed
+   - Progress needs to be tracked
+3. **NEVER create files like**:
+   - DEPLOY.md, SETUP.md, NOTES.md, README.md (in VM dirs)
+   - Service-specific docs (ADGUARD-SETUP.md, TRAEFIK-NOTES.md, etc.)
+   - Any other markdown files for tracking or documentation
+
+**Exceptions** (keep these files only):
+- `CLAUDE.md` - This file (instructions for Claude)
+- `INFRASTRUCTURE.md` - Single source of truth (UPDATE THIS)
+- `VM-TEMPLATE-SETUP.md` - One-time VM template creation reference
+- `1PASSWORD-SETUP.md` - One-time 1Password setup reference
+- `README.md` (root only) - Brief overview pointing to other docs
+
+**When to update INFRASTRUCTURE.md:**
+- Service deployed → Update "Current Progress" section
+- New pattern learned → Add to "Quick Reference Notes"
+- Important command used → Add to "Common Commands" if useful
+- Decision made → Update relevant section
+- Next steps identified → Update "Next Steps" section
+
+**Documentation style in INFRASTRUCTURE.md:**
+- Focused, not stories
+- Actionable commands and notes
+- "To do X: do Y" format
+- Example: "Traefik: to add service → create router + service in .yml files"
+- Keep it scannable and quick to reference
+
 ## Working Philosophy
 
 **Progressive Development**: Build incrementally, one service at a time. No large dumps of information or code.
 
 **User Control**: Present information, get decisions, implement. User stays in control.
 
-**Documentation Style**:
-- Concise, actionable commands only
-- No stories or lengthy explanations
-- Format: "Do X: `command` - brief what it does"
-- Update decisions in code and docs as we go
-- Keep it simple, secure, functional
-
 **Decision Tracking**: When decisions are made during implementation:
 1. Update affected code immediately
-2. Update relevant documentation sections
+2. Update INFRASTRUCTURE.md (NOT separate files)
 3. No over-engineering - simple solutions first
 
 ## Repository Overview
@@ -286,8 +315,10 @@ infrastructure/
 
 ### Edge Configurations
 
-- `edge/traefik/config/traefik.yml` - Traefik entrypoints, SSL
-- `edge/traefik/config/dynamic/authentik.yml` - Authentik forward auth
+- `edge/traefik/config/traefik.yml` - Traefik static config (entrypoints, SSL)
+- `edge/traefik/config/dynamic/middlewares.yml` - Auth, headers, rate limiting
+- `edge/traefik/config/dynamic/services.yml` - Backend server targets
+- `edge/traefik/config/dynamic/routers.yml` - Domain routing rules
 
 ## Troubleshooting
 
