@@ -106,6 +106,7 @@ services:
     container_name: authentik-server
     restart: unless-stopped
     command: server
+    user: root
     environment:
       # Redis connection (db host)
       AUTHENTIK_REDIS__HOST: 10.10.10.111
@@ -142,6 +143,7 @@ services:
     container_name: authentik-worker
     restart: unless-stopped
     command: worker
+    user: root
     environment:
       # Redis connection (db host)
       AUTHENTIK_REDIS__HOST: 10.10.10.111
