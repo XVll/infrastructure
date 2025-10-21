@@ -40,39 +40,38 @@ services:
         max-file: "3"
 
   # ============================================================================
-  # 2. POSTGRESQL - Relational Database (COMING NEXT)
+  # 2. POSTGRESQL - Relational Database
   # ============================================================================
   # Used by: Authentik, Grafana, n8n, Paperless, custom apps
-  # Uncomment when ready to deploy
 
-  # postgres:
-  #   image: postgres:16-alpine
-  #   container_name: postgres
-  #   restart: unless-stopped
-  #   environment:
-  #     POSTGRES_USER: ${POSTGRES_USER}
-  #     POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-  #     POSTGRES_DB: postgres
-  #   ports:
-  #     - "10.10.10.111:5432:5432"
-  #   volumes:
-  #     - ./postgres/data:/var/lib/postgresql/data
-  #     - ./postgres/config/postgresql.conf:/etc/postgresql/postgresql.conf:ro
-  #     - ./postgres/config/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
-  #     - ./postgres/certs:/certs:ro
-  #   command: ["postgres", "-c", "config_file=/etc/postgresql/postgresql.conf"]
-  #   networks:
-  #     - data_net
-  #   healthcheck:
-  #     test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
-  #     interval: 10s
-  #     timeout: 5s
-  #     retries: 5
-  #   logging:
-  #     driver: "json-file"
-  #     options:
-  #       max-size: "10m"
-  #       max-file: "3"
+  postgres:
+    image: postgres:16-alpine
+    container_name: postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: postgres
+    ports:
+      - "10.10.10.111:5432:5432"
+    volumes:
+      - ./postgres/data:/var/lib/postgresql/data
+      - ./postgres/config/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+      - ./postgres/config/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
+      - ./postgres/certs:/certs:ro
+    command: ["postgres", "-c", "config_file=/etc/postgresql/postgresql.conf"]
+    networks:
+      - data_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   # ============================================================================
   # 3. REDIS - Cache & Session Storage (COMING NEXT)
