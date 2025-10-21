@@ -15,8 +15,8 @@
 
 ### Phase 2: Edge Services 🚧 IN PROGRESS
 - [x] Traefik (edge host - 10.10.10.110) - Deployed, SSL working
-- [ ] AdGuard Home (edge host - 10.10.10.110) - Ready to deploy
-- [ ] Authentik SSO (edge host - 10.10.10.110) - After AdGuard
+- [x] AdGuard Home (edge host - 10.10.10.110) - Deployed, DNS rewrites configured
+- [ ] Authentik SSO (edge host - 10.10.10.110) - NEXT
 
 ### Phase 3: Observability ⏳ PENDING
 - [ ] Prometheus (observability host - 10.10.10.112)
