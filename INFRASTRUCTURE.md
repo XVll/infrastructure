@@ -15,7 +15,7 @@
 
 ### Phase 2: Edge Services 🚧 IN PROGRESS
 - [x] Traefik (edge host - 10.10.10.110) - Deployed, SSL working
-- [ ] AdGuard Home (edge host - 10.10.10.110) - NEXT
+- [ ] AdGuard Home (edge host - 10.10.10.110) - Ready to deploy
 - [ ] Authentik SSO (edge host - 10.10.10.110) - After AdGuard
 
 ### Phase 3: Observability ⏳ PENDING
@@ -75,36 +75,47 @@ edge/traefik/config/dynamic/
 
 ### AdGuard Home (DNS)
 
-**Status:** Not deployed yet
+**Status:** Ready to deploy
 
 **Purpose:** Internal DNS resolution for `*.onurx.com` domains
 
-**Setup:**
-1. Deploy: `op run --env-file=.env -- docker compose up -d adguard`
-2. Access: `http://10.10.10.110:3000` (initial setup)
-3. Add DNS rewrites for all services (see below)
-4. Update router DNS to `10.10.10.110`
+**Config:** `edge/adguard/data/conf/AdGuardHome.yaml`
 
-**DNS Rewrites to Configure:**
-Map all `*.onurx.com` domains to `10.10.10.110`:
-- auth.onurx.com → 10.10.10.110
-- portainer.onurx.com → 10.10.10.110
-- grafana.onurx.com → 10.10.10.110
-- sonarr.onurx.com → 10.10.10.110
-- radarr.onurx.com → 10.10.10.110
-- prowlarr.onurx.com → 10.10.10.110
-- jellyfin.onurx.com → 10.10.10.110
-- qbittorrent.onurx.com → 10.10.10.110
-- n8n.onurx.com → 10.10.10.110
-- paperless.onurx.com → 10.10.10.110
-- coolify.onurx.com → 10.10.10.110
-- minio.onurx.com → 10.10.10.110
-- s3.onurx.com → 10.10.10.110
+**Deploy:**
+```bash
+# On edge VM (10.10.10.110)
+cd /opt/homelab
+docker compose up -d adguard
 
-**Why this approach?**
-- Valid SSL certs from Let's Encrypt (no browser warnings)
-- Internal-only access (not exposed to internet)
-- Simple domain names instead of `.homelab.local`
+# Check logs
+docker compose logs -f adguard
+
+# Access web UI
+http://10.10.10.110:80
+```
+
+**Initial Setup:**
+1. Access `http://10.10.10.110:3000` on first run
+2. Create admin account (username: admin)
+3. Skip other setup steps (config already done)
+4. Access main UI at `http://10.10.10.110:80`
+
+**DNS Rewrites (Pre-configured):**
+All `*.onurx.com` domains → `10.10.10.110`:
+- auth, portainer, grafana, sonarr, radarr, prowlarr
+- jellyfin, qbittorrent, n8n, paperless, coolify
+- minio, s3
+
+**After Deployment:**
+1. Update router DNS to `10.10.10.110`
+2. Test: `nslookup grafana.onurx.com` should return `10.10.10.110`
+3. Test SSL: `https://grafana.onurx.com` should work with valid cert
+
+**Why AdGuard?**
+- Config-as-code (YAML file in git)
+- DNS rewrites pre-configured
+- Modern, actively developed
+- Fits infrastructure-as-code workflow
 
 ---
 
@@ -408,10 +419,11 @@ Deploy in order:
 
 ## Next Steps
 
-1. **Deploy AdGuard Home** (edge VM)
-   - Uncomment service in `edge/docker-compose.yml`
-   - Deploy and configure DNS rewrites
-   - Update router DNS
+1. **Deploy AdGuard Home** (edge VM) - READY NOW
+   - Run: `docker compose up -d adguard`
+   - Complete initial setup at `http://10.10.10.110:3000`
+   - Update router DNS to `10.10.10.110`
+   - Test DNS resolution
 
 2. **Deploy Authentik** (edge VM)
    - Requires AdGuard DNS working

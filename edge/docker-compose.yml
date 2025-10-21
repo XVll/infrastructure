@@ -68,26 +68,31 @@ services:
         max-file: "3"
 
   # ============================================================================
-  # 2. ADGUARD HOME - DNS Server (COMING NEXT)
+  # 2. ADGUARD HOME - DNS Server
   # ============================================================================
   # Deploy second - no dependencies
-  # Access: http://10.10.10.110:3000 (setup) → http://10.10.10.110:80 (web UI)
-  # Remember to change router DNS to 10.10.10.110 after setup
+  # Access: http://10.10.10.110:80 (web UI)
+  # Config: ./adguard/data/conf/AdGuardHome.yaml (DNS rewrites pre-configured)
 
-  # adguard:
-  #   image: adguard/adguardhome:latest
-  #   container_name: adguard
-  #   restart: unless-stopped
-  #   ports:
-  #     - "10.10.10.110:53:53/tcp"      # DNS
-  #     - "10.10.10.110:53:53/udp"      # DNS
-  #     - "10.10.10.110:3000:3000/tcp"  # Initial setup
-  #     - "10.10.10.110:80:80/tcp"      # Web interface (after setup)
-  #   volumes:
-  #     - ./adguard/data/work:/opt/adguardhome/work
-  #     - ./adguard/data/conf:/opt/adguardhome/conf
-  #   networks:
-  #     - edge_net
+  adguard:
+    image: adguard/adguardhome:latest
+    container_name: adguard
+    restart: unless-stopped
+    ports:
+      - "10.10.10.110:53:53/tcp"      # DNS
+      - "10.10.10.110:53:53/udp"      # DNS
+      - "10.10.10.110:3000:3000/tcp"  # Initial setup
+      - "10.10.10.110:80:80/tcp"      # Web interface
+    volumes:
+      - ./adguard/data/work:/opt/adguardhome/work
+      - ./adguard/data/conf:/opt/adguardhome/conf
+    networks:
+      - edge_net
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   # ============================================================================
   # 3. AUTHENTIK - SSO & Identity Provider (COMING NEXT)
