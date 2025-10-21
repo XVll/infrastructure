@@ -20,9 +20,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Exceptions** (keep these files only):
 - `CLAUDE.md` - This file (instructions for Claude)
 - `INFRASTRUCTURE.md` - Single source of truth (UPDATE THIS)
-- `VM-TEMPLATE-SETUP.md` - One-time VM template creation reference
-- `1PASSWORD-SETUP.md` - One-time 1Password setup reference
-- `README.md` (root only) - Brief overview pointing to other docs
+- `README.md` (root only) - Brief overview pointing to INFRASTRUCTURE.md
 
 **When to update INFRASTRUCTURE.md:**
 - Service deployed → Update "Current Progress" section
@@ -389,7 +387,7 @@ nc -zv 10.10.10.111 6379     # Redis
 
 ### Creating a New VM
 
-Follow the detailed steps in `VM-TEMPLATE-SETUP.md`. Key points:
+Key points (see INFRASTRUCTURE.md for full details):
 1. Clone from template (full clone recommended)
 2. Set static IP in Proxmox
 3. Add VirtioFS mount pointing to subdirectory: `qm set <vm-id> --virtfs0 /flash/docker/homelab/<vm-name>,mp=docker-vm`

@@ -4,9 +4,7 @@ Progressive Docker-based infrastructure on Proxmox VMs using VirtioFS for statel
 
 ## Documentation
 
-- **[INFRASTRUCTURE.md](INFRASTRUCTURE.md)** - Current progress, quick reference notes, common commands
-- **[VM-TEMPLATE-SETUP.md](VM-TEMPLATE-SETUP.md)** - One-time VM template creation
-- **[1PASSWORD-SETUP.md](1PASSWORD-SETUP.md)** - One-time secrets management setup
+- **[INFRASTRUCTURE.md](INFRASTRUCTURE.md)** - All documentation, progress, setup guides, and notes
 
 ## Quick Reference
 

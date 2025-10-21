@@ -231,7 +231,7 @@ psql -h 10.10.10.111 -U <user> -d <database>
 ### Create New VM
 ```bash
 # On Proxmox host
-qm clone <template-id> <new-id> --name <vm-name>
+qm clone <template-id> <new-id> --name <vm-name> --full
 qm set <new-id> --memory 4096 --cores 2 --ipconfig0 ip=10.10.10.xxx/24,gw=10.10.10.1
 qm set <new-id> --virtfs0 /flash/docker/homelab/<vm-name>,mp=docker-vm
 qm start <new-id>
@@ -245,6 +245,118 @@ echo 'export OP_SERVICE_ACCOUNT_TOKEN="ops_xxx"' >> ~/.bashrc
 source ~/.bashrc
 cd /opt/homelab
 ```
+
+---
+
+## VM Template Setup
+
+### Create Template (One-Time)
+
+**Install base packages:**
+```bash
+# Update system
+sudo apt update && sudo apt upgrade -y
+
+# Install essentials
+sudo apt install -y curl wget vim htop net-tools git ca-certificates gnupg
+
+# Install Docker
+curl -fsSL https://get.docker.com | sh
+sudo usermod -aG docker homelab
+sudo systemctl enable docker
+
+# Configure Git (this is saved in template)
+git config --global user.name "XVll"
+git config --global user.email "onur03@gmail.com"
+
+# Install 1Password CLI
+curl -sS https://downloads.1password.com/linux/keys/1password.asc | \
+  sudo gpg --dearmor --output /usr/share/keyrings/1password-archive-keyring.gpg
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/1password-archive-keyring.gpg] https://downloads.1password.com/linux/debian/$(dpkg --print-architecture) stable main" | \
+  sudo tee /etc/apt/sources.list.d/1password.list
+sudo apt update && sudo apt install -y 1password-cli
+
+# Install QEMU guest agent
+sudo apt install -y qemu-guest-agent
+sudo systemctl enable qemu-guest-agent
+```
+
+**Clean before templating:**
+```bash
+# Remove SSH keys (regenerated on boot)
+sudo rm -f /etc/ssh/ssh_host_*
+
+# Clear history and machine-id
+cat /dev/null > ~/.bash_history
+history -c
+sudo truncate -s 0 /etc/machine-id
+
+# Shutdown
+sudo shutdown -h now
+```
+
+**Convert to template in Proxmox UI:** Right-click VM → Convert to Template
+
+**Important:**
+- Git is pre-configured in template (name/email)
+- DO NOT set `OP_SERVICE_ACCOUNT_TOKEN` in template (set per VM)
+- Use Full Clone when creating VMs (not Linked Clone)
+
+---
+
+## 1Password Setup
+
+### Create Items in "Server" Vault
+
+**Required items:**
+- `mongodb` - fields: username, password
+- `postgres` - fields: username, password
+- `redis` - field: password
+- `minio` - fields: username, password
+- `grafana` - fields: username, password
+- `cloudflare` - fields: email, api_token
+
+**Verify setup:**
+```bash
+op read "op://Server/mongodb/username"
+op read "op://Server/postgres/password"
+```
+
+**How it works:**
+1. `.env` files contain: `MONGODB_ROOT_USER=op://Server/mongodb/username`
+2. Run: `op run --env-file=.env -- docker compose up -d`
+3. `op run` fetches actual values from 1Password and injects them
+
+**Troubleshooting:**
+- "item not found" → Check vault name is "Server", item/field names match exactly
+- "not signed in" → Set `OP_SERVICE_ACCOUNT_TOKEN` in `~/.bashrc`
+
+---
+
+## Service-Specific Notes
+
+### Coolify (PaaS)
+
+**Status:** Not deployed yet
+
+**Installation:**
+```bash
+# SSH to coolify VM (10.10.10.114)
+curl -fsSL https://cdn.coollabs.io/coolify/install.sh | bash
+```
+
+**Access:** `http://10.10.10.114:8000` or `https://coolify.onurx.com`
+
+**Use external databases:**
+```
+DATABASE_URL=postgresql://app:pass@10.10.10.111:5432/app
+REDIS_URL=redis://:pass@10.10.10.111:6379
+MONGODB_URL=mongodb://app:pass@10.10.10.111:27017/app
+```
+
+**Deployment:** git push → automatic build & deploy
+
+**Not managed by docker-compose** - uses own installer
 
 ---
 
