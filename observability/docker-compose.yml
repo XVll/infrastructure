@@ -30,6 +30,9 @@ services:
       KOMODO_MONGO_USERNAME: ${MONGODB_ROOT_USER}
       KOMODO_MONGO_PASSWORD: ${MONGODB_ROOT_PASSWORD}
       KOMODO_MONGO_DB_NAME: "komodo"
+      # Enable local auth
+      KOMODO_LOCAL_AUTH: "true"
+      KOMODO_ENABLE_NEW_USERS: "true"
     networks:
       - obs_net
     healthcheck:
