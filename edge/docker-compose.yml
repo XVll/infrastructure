@@ -71,7 +71,7 @@ services:
   # 2. ADGUARD HOME - DNS Server
   # ============================================================================
   # Deploy second - no dependencies
-  # Access: http://10.10.10.110:80 (web UI)
+  # Access: http://10.10.10.110:8888 (web UI)
   # Config: ./adguard/data/conf/AdGuardHome.yaml (DNS rewrites pre-configured)
 
   adguard:
@@ -82,7 +82,7 @@ services:
       - "10.10.10.110:53:53/tcp"      # DNS
       - "10.10.10.110:53:53/udp"      # DNS
       - "10.10.10.110:3000:3000/tcp"  # Initial setup
-      - "10.10.10.110:80:80/tcp"      # Web interface
+      - "10.10.10.110:8888:80/tcp"    # Web interface (avoiding conflict with Traefik)
     volumes:
       - ./adguard/data/work:/opt/adguardhome/work
       - ./adguard/data/conf:/opt/adguardhome/conf

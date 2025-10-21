@@ -91,14 +91,14 @@ docker compose up -d adguard
 docker compose logs -f adguard
 
 # Access web UI
-http://10.10.10.110:80
+http://10.10.10.110:8888
 ```
 
 **Initial Setup:**
 1. Access `http://10.10.10.110:3000` on first run
 2. Create admin account (username: admin)
 3. Skip other setup steps (config already done)
-4. Access main UI at `http://10.10.10.110:80`
+4. Access main UI at `http://10.10.10.110:8888`
 
 **DNS Rewrites (Pre-configured):**
 All `*.onurx.com` domains → `10.10.10.110`:
