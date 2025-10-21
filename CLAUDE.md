@@ -62,6 +62,22 @@ op run --env-file=.env -- docker compose up -d service1 service2
 op run --env-file=.env -- docker compose up -d
 ```
 
+### Komodo Periphery Setup
+
+Install Periphery agent on each VM to allow Komodo management:
+```bash
+# Install Periphery as systemd service
+curl -sSL https://raw.githubusercontent.com/moghtech/komodo/main/scripts/setup-periphery.py | sudo python3
+
+# Enable on boot
+sudo systemctl enable periphery
+
+# Check status
+sudo systemctl status periphery
+```
+
+Then add server in Komodo UI with address: `http://<vm-ip>:8120`
+
 ### Checking Status
 
 ```bash
