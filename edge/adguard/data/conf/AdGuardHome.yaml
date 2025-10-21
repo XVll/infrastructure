@@ -1,8 +1,6 @@
 bind_host: 0.0.0.0
 bind_port: 80
-users:
-  - name: admin
-    password: $2a$10$placeholder_hash_will_be_generated_on_first_run
+users: []
 rlimit_nofile: 0
 web_session_ttl: 720
 dns:
