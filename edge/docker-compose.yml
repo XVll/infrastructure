@@ -28,10 +28,10 @@ services:
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ./config/traefik/traefik.yml:/traefik.yml:ro
-      - ./config/traefik/dynamic:/dynamic:ro
-      - ./data/traefik/acme.json:/acme.json
-      - ./data/traefik/logs:/logs
+      - ./traefik/config/traefik.yml:/traefik.yml:ro
+      - ./traefik/config/dynamic:/dynamic:ro
+      - ./traefik/data/acme.json:/acme.json
+      - ./traefik/data/logs:/logs
     networks:
       - edge_net
     healthcheck:
@@ -62,8 +62,8 @@ services:
   #     - "10.10.10.110:3000:3000/tcp"  # Initial setup
   #     - "10.10.10.110:80:80/tcp"      # Web interface (after setup)
   #   volumes:
-  #     - ./data/adguard/work:/opt/adguardhome/work
-  #     - ./data/adguard/conf:/opt/adguardhome/conf
+  #     - ./adguard/data/work:/opt/adguardhome/work
+  #     - ./adguard/data/conf:/opt/adguardhome/conf
   #   networks:
   #     - edge_net
 
@@ -92,8 +92,8 @@ services:
   #     - "10.10.10.110:9000:9000"   # HTTP
   #     - "10.10.10.110:9443:9443"   # HTTPS
   #   volumes:
-  #     - ./data/authentik/media:/media
-  #     - ./data/authentik/custom-templates:/templates
+  #     - ./authentik/data/media:/media
+  #     - ./authentik/data/custom-templates:/templates
   #   networks:
   #     - edge_net
   #   labels:
@@ -119,9 +119,9 @@ services:
   #     AUTHENTIK_POSTGRESQL__PASSWORD: ${AUTHENTIK_DB_PASSWORD}
   #     AUTHENTIK_SECRET_KEY: ${AUTHENTIK_SECRET_KEY}
   #   volumes:
-  #     - ./data/authentik/media:/media
-  #     - ./data/authentik/custom-templates:/templates
-  #     - ./data/authentik/certs:/certs
+  #     - ./authentik/data/media:/media
+  #     - ./authentik/data/custom-templates:/templates
+  #     - ./authentik/certs:/certs
   #   networks:
   #     - edge_net
 

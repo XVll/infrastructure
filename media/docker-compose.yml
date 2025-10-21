@@ -31,8 +31,8 @@ services:
       - "10.10.10.113:7359:7359/udp"  # Service discovery
       - "10.10.10.113:1900:1900/udp"  # Service discovery
     volumes:
-      - ./data/jellyfin/config:/config
-      - ./data/jellyfin/cache:/cache
+      - ./jellyfin/data/config:/config
+      - ./jellyfin/data/cache:/cache
       - /mnt/nas/media/movies:/media/movies:ro
       - /mnt/nas/media/tv:/media/tv:ro
       - /mnt/nas/media/music:/media/music:ro
@@ -69,7 +69,7 @@ services:
   #   ports:
   #     - "10.10.10.113:9696:9696"
   #   volumes:
-  #     - ./data/prowlarr:/config
+  #     - ./prowlarr/data:/config
   #   networks:
   #     - media_net
 
@@ -90,7 +90,7 @@ services:
   #   ports:
   #     - "10.10.10.113:8989:8989"
   #   volumes:
-  #     - ./data/sonarr:/config
+  #     - ./sonarr/data:/config
   #     - /mnt/nas/media/tv:/tv
   #     - /mnt/nas/downloads:/downloads
   #   networks:
@@ -113,7 +113,7 @@ services:
   #   ports:
   #     - "10.10.10.113:7878:7878"
   #   volumes:
-  #     - ./data/radarr:/config
+  #     - ./radarr/data:/config
   #     - /mnt/nas/media/movies:/movies
   #     - /mnt/nas/downloads:/downloads
   #   networks:
@@ -139,7 +139,7 @@ services:
   #     - "10.10.10.113:6881:6881"  # Torrent port
   #     - "10.10.10.113:6881:6881/udp"
   #   volumes:
-  #     - ./data/qbittorrent:/config
+  #     - ./qbittorrent/data:/config
   #     - /mnt/nas/downloads:/downloads
   #   networks:
   #     - media_net
@@ -168,7 +168,7 @@ services:
   #   ports:
   #     - "10.10.10.113:5678:5678"
   #   volumes:
-  #     - ./data/n8n:/home/node/.n8n
+  #     - ./n8n/data:/home/node/.n8n
   #   networks:
   #     - media_net
   #   labels:
@@ -202,10 +202,10 @@ services:
   #   ports:
   #     - "10.10.10.113:8000:8000"
   #   volumes:
-  #     - ./data/paperless/data:/usr/src/paperless/data
-  #     - ./data/paperless/media:/usr/src/paperless/media
-  #     - ./data/paperless/export:/usr/src/paperless/export
-  #     - ./data/paperless/consume:/usr/src/paperless/consume
+  #     - ./paperless/data/data:/usr/src/paperless/data
+  #     - ./paperless/data/media:/usr/src/paperless/media
+  #     - ./paperless/data/export:/usr/src/paperless/export
+  #     - ./paperless/data/consume:/usr/src/paperless/consume
   #   networks:
   #     - media_net
   #   labels:

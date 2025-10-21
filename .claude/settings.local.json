@@ -1,7 +1,21 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git fetch origin)"
+      "Bash(git fetch origin)",
+      "Bash(mkdir:*)",
+      "Bash(if [ -d config/prometheus ])",
+      "Bash(then cp -r config/prometheus/* prometheus/config/)",
+      "Bash(fi)",
+      "Bash(if [ -d config/grafana ])",
+      "Bash(then cp -r config/grafana/provisioning/* grafana/provisioning/)",
+      "Bash(if [ -d config/loki ])",
+      "Bash(then cp -r config/loki/* loki/config/)",
+      "Bash(if [ -d config/alloy ])",
+      "Bash(then cp -r config/alloy/* alloy/config/)",
+      "Bash(rm:*)",
+      "Bash(if [ -d data ])",
+      "Bash(then rm -rf data/)",
+      "Bash(cp:*)"
     ],
     "deny": [],
     "ask": []

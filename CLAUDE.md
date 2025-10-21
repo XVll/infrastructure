@@ -2,6 +2,24 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Working Philosophy
+
+**Progressive Development**: Build incrementally, one service at a time. No large dumps of information or code.
+
+**User Control**: Present information, get decisions, implement. User stays in control.
+
+**Documentation Style**:
+- Concise, actionable commands only
+- No stories or lengthy explanations
+- Format: "Do X: `command` - brief what it does"
+- Update decisions in code and docs as we go
+- Keep it simple, secure, functional
+
+**Decision Tracking**: When decisions are made during implementation:
+1. Update affected code immediately
+2. Update relevant documentation sections
+3. No over-engineering - simple solutions first
+
 ## Repository Overview
 
 This is a homelab infrastructure repository for managing Docker-based services across multiple Proxmox VMs. The architecture uses VirtioFS to mount subdirectories from a central git repository on the Proxmox host to individual VMs, making all VMs stateless and disposable.
@@ -133,59 +151,101 @@ When enabling new services:
 
 ## Directory Structure
 
+**Standardized Layout** - All VMs follow this pattern:
+
+```
+{vm-name}/
+├── docker-compose.yml
+├── .env                        # 1Password references only
+├── {service-name}/
+│   ├── config/                 # Service configs (committed)
+│   ├── certs/                  # TLS certs (gitignored)
+│   └── data/                   # Runtime data (gitignored)
+```
+
+**Example:**
+
 ```
 infrastructure/
-├── db/                         # Database VM (10.10.10.111)
-│   ├── docker-compose.yml      # All database services
-│   ├── .env                    # 1Password references
-│   ├── mongodb/                # MongoDB config and certs
-│   ├── postgres/               # PostgreSQL config and certs
-│   ├── redis/                  # Redis certs
-│   └── minio/                  # MinIO certs
+├── db/
+│   ├── docker-compose.yml
+│   ├── .env
+│   ├── mongodb/
+│   │   ├── config/mongod.conf
+│   │   ├── certs/
+│   │   └── data/
+│   ├── postgres/
+│   │   ├── config/
+│   │   ├── certs/
+│   │   └── data/
+│   ├── redis/
+│   │   ├── certs/
+│   │   └── data/
+│   └── minio/
+│       ├── certs/
+│       └── data/
 │
-├── observability/              # Monitoring VM (10.10.10.112)
-│   ├── docker-compose.yml      # Komodo, Prometheus, Grafana, Loki
-│   ├── .env                    # 1Password references
-│   └── config/                 # Service configurations
-│       ├── prometheus/
-│       ├── grafana/
-│       ├── loki/
-│       └── alloy/
+├── observability/
+│   ├── docker-compose.yml
+│   ├── .env
+│   ├── komodo/data/
+│   ├── prometheus/
+│   │   ├── config/
+│   │   └── data/
+│   ├── grafana/
+│   │   ├── provisioning/
+│   │   └── data/
+│   ├── loki/
+│   │   ├── config/
+│   │   └── data/
+│   └── alloy/config/
 │
-├── edge/                       # Reverse proxy VM (10.10.10.110)
-│   ├── docker-compose.yml      # Traefik, AdGuard, Authentik
-│   ├── .env                    # 1Password references
-│   └── config/
-│       └── traefik/
+├── edge/
+│   ├── docker-compose.yml
+│   ├── .env
+│   ├── traefik/
+│   │   ├── config/
+│   │   └── data/
+│   ├── adguard/data/
+│   └── authentik/
+│       ├── certs/
+│       └── data/
 │
-├── media/                      # Media VM (10.10.10.113)
-│   ├── docker-compose.yml      # Jellyfin, Arr stack, n8n, Paperless
-│   └── .env                    # 1Password references
+├── media/
+│   ├── docker-compose.yml
+│   ├── .env
+│   ├── jellyfin/data/
+│   ├── prowlarr/data/
+│   ├── sonarr/data/
+│   ├── radarr/data/
+│   ├── qbittorrent/data/
+│   ├── n8n/data/
+│   └── paperless/data/
 │
-└── coolify/                    # PaaS VM (10.10.10.114)
-    └── README.md               # Custom installation guide
+└── coolify/
+    └── README.md
 ```
 
 ## Key Configuration Files
 
 ### Database Configurations
 
-- `db/mongodb/config/mongod.conf` - MongoDB config (TLS, replication settings)
+- `db/mongodb/config/mongod.conf` - MongoDB config (TLS, replication)
 - `db/postgres/config/postgresql.conf` - PostgreSQL tuning
 - `db/postgres/config/pg_hba.conf` - PostgreSQL access control
 
 ### Monitoring Configurations
 
-- `observability/config/prometheus/prometheus.yml` - Scrape configs for all hosts
-- `observability/config/prometheus/rules/alerts.yml` - Alerting rules
-- `observability/config/grafana/provisioning/` - Auto-provisioned datasources and dashboards
-- `observability/config/loki/config.yml` - Loki with MinIO backend
-- `observability/config/alloy/config.alloy` - Metrics/logs collection pipeline
+- `observability/prometheus/config/prometheus.yml` - Scrape configs
+- `observability/prometheus/config/rules/alerts.yml` - Alerting rules
+- `observability/grafana/provisioning/` - Datasources, dashboards
+- `observability/loki/config/config.yml` - Loki with MinIO backend
+- `observability/alloy/config/config.alloy` - Metrics/logs collection
 
 ### Edge Configurations
 
-- `edge/config/traefik/traefik.yml` - Traefik entrypoints, SSL, dashboard
-- `edge/config/traefik/dynamic/authentik.yml` - Authentik forward auth integration
+- `edge/traefik/config/traefik.yml` - Traefik entrypoints, SSL
+- `edge/traefik/config/dynamic/authentik.yml` - Authentik forward auth
 
 ## Troubleshooting
 

@@ -21,7 +21,7 @@ services:
     ports:
       - "10.10.10.112:9120:9120"
     volumes:
-      - ./data/komodo:/data
+      - ./komodo/data:/data
     environment:
       KOMODO_TITLE: "Homelab Infrastructure"
       KOMODO_HOST: "http://10.10.10.112:9120"
@@ -60,9 +60,9 @@ services:
   #   ports:
   #     - "10.10.10.112:9090:9090"
   #   volumes:
-  #     - ./config/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-  #     - ./config/prometheus/rules:/etc/prometheus/rules:ro
-  #     - ./data/prometheus:/prometheus
+  #     - ./prometheus/config/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+  #     - ./prometheus/config/rules:/etc/prometheus/rules:ro
+  #     - ./prometheus/data:/prometheus
   #   networks:
   #     - obs_net
   #   healthcheck:
@@ -94,8 +94,8 @@ services:
   #   ports:
   #     - "10.10.10.112:3000:3000"
   #   volumes:
-  #     - ./data/grafana:/var/lib/grafana
-  #     - ./config/grafana/provisioning:/etc/grafana/provisioning:ro
+  #     - ./grafana/data:/var/lib/grafana
+  #     - ./grafana/provisioning:/etc/grafana/provisioning:ro
   #   networks:
   #     - obs_net
   #   labels:
@@ -119,8 +119,8 @@ services:
   #   ports:
   #     - "10.10.10.112:3100:3100"
   #   volumes:
-  #     - ./config/loki/config.yml:/etc/loki/config.yml:ro
-  #     - ./data/loki:/loki
+  #     - ./loki/config/config.yml:/etc/loki/config.yml:ro
+  #     - ./loki/data:/loki
   #   networks:
   #     - obs_net
   #   healthcheck:
@@ -146,7 +146,7 @@ services:
   #   ports:
   #     - "10.10.10.112:12345:12345"  # Alloy web UI
   #   volumes:
-  #     - ./config/alloy/config.alloy:/etc/alloy/config.alloy:ro
+  #     - ./alloy/config/config.alloy:/etc/alloy/config.alloy:ro
   #     - /var/run/docker.sock:/var/run/docker.sock:ro
   #   networks:
   #     - obs_net
