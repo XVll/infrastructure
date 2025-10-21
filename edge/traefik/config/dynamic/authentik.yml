@@ -47,11 +47,23 @@ http:
 
   # Services for other VMs
   services:
-    # VM 3: Grafana (Observability)
+    # Authentik (local on edge VM)
+    authentik-svc:
+      loadBalancer:
+        servers:
+          - url: "http://authentik-server:9000"
+
+    # Observability VM (10.10.10.112)
+    portainer:
+      loadBalancer:
+        servers:
+          - url: "https://10.10.10.112:9443"
+        serversTransport: insecureTransport
+
     grafana:
       loadBalancer:
         servers:
-          - url: "http://10.10.10.12:3000"
+          - url: "http://10.10.10.112:3000"
 
     # VM 4: Media Apps
     sonarr:
@@ -106,11 +118,38 @@ http:
         servers:
           - url: "http://10.10.10.11:9000"
 
+  # Transports
+  serversTransports:
+    insecureTransport:
+      insecureSkipVerify: true
+
   # Routers for services
   routers:
+    # Authentik (SSO) - no auth middleware on itself
+    authentik:
+      rule: "Host(`auth.onurx.com`)"
+      entryPoints:
+        - websecure
+      service: authentik-svc
+      middlewares:
+        - security-headers
+      tls:
+        certResolver: cloudflare
+
+    # Portainer
+    portainer:
+      rule: "Host(`portainer.onurx.com`)"
+      entryPoints:
+        - websecure
+      service: portainer
+      middlewares:
+        - security-headers
+      tls:
+        certResolver: cloudflare
+
     # Grafana
     grafana:
-      rule: "Host(`grafana.homelab.local`)"
+      rule: "Host(`grafana.onurx.com`)"
       entryPoints:
         - websecure
       service: grafana
@@ -122,7 +161,7 @@ http:
 
     # Sonarr
     sonarr:
-      rule: "Host(`sonarr.homelab.local`)"
+      rule: "Host(`sonarr.onurx.com`)"
       entryPoints:
         - websecure
       service: sonarr
@@ -134,7 +173,7 @@ http:
 
     # Radarr
     radarr:
-      rule: "Host(`radarr.homelab.local`)"
+      rule: "Host(`radarr.onurx.com`)"
       entryPoints:
         - websecure
       service: radarr
@@ -146,7 +185,7 @@ http:
 
     # Prowlarr
     prowlarr:
-      rule: "Host(`prowlarr.homelab.local`)"
+      rule: "Host(`prowlarr.onurx.com`)"
       entryPoints:
         - websecure
       service: prowlarr
@@ -158,7 +197,7 @@ http:
 
     # Jellyfin
     jellyfin:
-      rule: "Host(`jellyfin.homelab.local`)"
+      rule: "Host(`jellyfin.onurx.com`)"
       entryPoints:
         - websecure
       service: jellyfin
@@ -170,7 +209,7 @@ http:
 
     # qBittorrent
     qbittorrent:
-      rule: "Host(`qbittorrent.homelab.local`)"
+      rule: "Host(`qbittorrent.onurx.com`)"
       entryPoints:
         - websecure
       service: qbittorrent
@@ -182,7 +221,7 @@ http:
 
     # n8n
     n8n:
-      rule: "Host(`n8n.homelab.local`)"
+      rule: "Host(`n8n.onurx.com`)"
       entryPoints:
         - websecure
       service: n8n
@@ -194,7 +233,7 @@ http:
 
     # Paperless
     paperless:
-      rule: "Host(`paperless.homelab.local`)"
+      rule: "Host(`paperless.onurx.com`)"
       entryPoints:
         - websecure
       service: paperless
@@ -206,7 +245,7 @@ http:
 
     # Coolify
     coolify:
-      rule: "Host(`coolify.homelab.local`)"
+      rule: "Host(`coolify.onurx.com`)"
       entryPoints:
         - websecure
       service: coolify
@@ -218,7 +257,7 @@ http:
 
     # MinIO Console
     minio-console:
-      rule: "Host(`minio-console.homelab.local`)"
+      rule: "Host(`minio.onurx.com`)"
       entryPoints:
         - websecure
       service: minio-console
@@ -230,7 +269,7 @@ http:
 
     # MinIO API (S3)
     minio-api:
-      rule: "Host(`s3.homelab.local`)"
+      rule: "Host(`s3.onurx.com`)"
       entryPoints:
         - websecure
       service: minio-api
