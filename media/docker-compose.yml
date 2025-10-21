@@ -34,46 +34,46 @@ services:
         max-file: "3"
 
   # ============================================================================
-  # 1. JELLYFIN - Media Server
+  # 1. JELLYFIN - Media Server (COMING NEXT)
   # ============================================================================
   # Deploy first - requires NAS mounts (/mnt/nas/media)
   # Access: http://10.10.10.113:8096
 
-  jellyfin:
-    image: jellyfin/jellyfin:latest
-    container_name: jellyfin
-    restart: unless-stopped
-    environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=UTC
-      - JELLYFIN_PublishedServerUrl=https://jellyfin.yourdomain.com
-    ports:
-      - "10.10.10.113:8096:8096"      # Web UI
-      - "10.10.10.113:8920:8920"      # HTTPS (optional)
-      - "10.10.10.113:7359:7359/udp"  # Service discovery
-      - "10.10.10.113:1900:1900/udp"  # Service discovery
-    volumes:
-      - ./jellyfin/data/config:/config
-      - ./jellyfin/data/cache:/cache
-      - /mnt/nas/media/movies:/media/movies:ro
-      - /mnt/nas/media/tv:/media/tv:ro
-      - /mnt/nas/media/music:/media/music:ro
-    devices:
-      - /dev/dri:/dev/dri  # Hardware transcoding (Intel/AMD GPU)
-    networks:
-      - media_net
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.jellyfin.rule=Host(`jellyfin.yourdomain.com`)"
-      - "traefik.http.routers.jellyfin.entrypoints=websecure"
-      - "traefik.http.routers.jellyfin.tls.certresolver=cloudflare"
-      - "traefik.http.services.jellyfin.loadbalancer.server.port=8096"
+  # jellyfin:
+  #   image: jellyfin/jellyfin:latest
+  #   container_name: jellyfin
+  #   restart: unless-stopped
+  #   environment:
+  #     - PUID=1000
+  #     - PGID=1000
+  #     - TZ=UTC
+  #     - JELLYFIN_PublishedServerUrl=https://jellyfin.yourdomain.com
+  #   ports:
+  #     - "10.10.10.113:8096:8096"      # Web UI
+  #     - "10.10.10.113:8920:8920"      # HTTPS (optional)
+  #     - "10.10.10.113:7359:7359/udp"  # Service discovery
+  #     - "10.10.10.113:1900:1900/udp"  # Service discovery
+  #   volumes:
+  #     - ./jellyfin/data/config:/config
+  #     - ./jellyfin/data/cache:/cache
+  #     - /mnt/nas/media/movies:/media/movies:ro
+  #     - /mnt/nas/media/tv:/media/tv:ro
+  #     - /mnt/nas/media/music:/media/music:ro
+  #   devices:
+  #     - /dev/dri:/dev/dri  # Hardware transcoding (Intel/AMD GPU)
+  #   networks:
+  #     - media_net
+  #   logging:
+  #     driver: "json-file"
+  #     options:
+  #       max-size: "10m"
+  #       max-file: "3"
+  #   labels:
+  #     - "traefik.enable=true"
+  #     - "traefik.http.routers.jellyfin.rule=Host(`jellyfin.yourdomain.com`)"
+  #     - "traefik.http.routers.jellyfin.entrypoints=websecure"
+  #     - "traefik.http.routers.jellyfin.tls.certresolver=cloudflare"
+  #     - "traefik.http.services.jellyfin.loadbalancer.server.port=8096"
 
   # ============================================================================
   # 2. PROWLARR - Indexer Manager (COMING NEXT)
