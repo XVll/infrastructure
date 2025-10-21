@@ -28,16 +28,16 @@ entryPoints:
       tls:
         certResolver: cloudflare
         domains:
-          - main: "homelab.local"
+          - main: "onurx.com"
             sans:
-              - "*.homelab.local"
+              - "*.onurx.com"
 
 # Certificate Resolvers
 certificatesResolvers:
   cloudflare:
     acme:
-      email: your-email@example.com
-      storage: /acme.json
+      email: onur03@gmail.com
+      storage: /data/acme.json
       dnsChallenge:
         provider: cloudflare
         resolvers:
@@ -50,7 +50,7 @@ providers:
   docker:
     endpoint: "unix:///var/run/docker.sock"
     exposedByDefault: false
-    network: homelab_routing
+    network: edge_net
     watch: true
 
   file:
@@ -60,12 +60,12 @@ providers:
 # Logging
 log:
   level: INFO
-  filePath: /logs/traefik.log
+  filePath: /data/logs/traefik.log
   format: json
 
 # Access Logs
 accessLog:
-  filePath: /logs/access.log
+  filePath: /data/logs/access.log
   format: json
   bufferingSize: 100
   filters:

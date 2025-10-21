@@ -53,8 +53,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./traefik/config/traefik.yml:/traefik.yml:ro
       - ./traefik/config/dynamic:/dynamic:ro
-      - ./traefik/data/acme.json:/acme.json
-      - ./traefik/data/logs:/logs
+      - ./traefik/data:/data
     networks:
       - edge_net
     healthcheck:
