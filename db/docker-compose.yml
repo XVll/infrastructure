@@ -74,38 +74,37 @@ services:
         max-file: "3"
 
   # ============================================================================
-  # 3. REDIS - Cache & Session Storage (COMING NEXT)
+  # 3. REDIS - Cache & Session Storage
   # ============================================================================
   # Used by: Authentik, Paperless, caching layers
-  # Uncomment when ready to deploy
 
-  # redis:
-  #   image: redis:7-alpine
-  #   container_name: redis
-  #   restart: unless-stopped
-  #   command: >
-  #     redis-server
-  #     --requirepass ${REDIS_PASSWORD}
-  #     --maxmemory 2gb
-  #     --maxmemory-policy allkeys-lru
-  #     --appendonly yes
-  #   ports:
-  #     - "10.10.10.111:6379:6379"
-  #   volumes:
-  #     - ./redis/data:/data
-  #     - ./redis/certs:/certs:ro
-  #   networks:
-  #     - data_net
-  #   healthcheck:
-  #     test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
-  #     interval: 10s
-  #     timeout: 5s
-  #     retries: 5
-  #   logging:
-  #     driver: "json-file"
-  #     options:
-  #       max-size: "10m"
-  #       max-file: "3"
+  redis:
+    image: redis:8-alpine
+    container_name: redis
+    restart: unless-stopped
+    command: >
+      redis-server
+      --requirepass ${REDIS_PASSWORD}
+      --maxmemory 2gb
+      --maxmemory-policy allkeys-lru
+      --appendonly yes
+    ports:
+      - "10.10.10.111:6379:6379"
+    volumes:
+      - ./redis/data:/data
+      - ./redis/certs:/certs:ro
+    networks:
+      - data_net
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   # ============================================================================
   # 4. MINIO - S3-Compatible Object Storage (COMING NEXT)
