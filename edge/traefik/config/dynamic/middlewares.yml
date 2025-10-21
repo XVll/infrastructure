@@ -1,0 +1,50 @@
+# Traefik Middlewares - Request Processing & Security
+
+http:
+  middlewares:
+    # Authentik Forward Auth Middleware
+    # Sends requests to Authentik SSO to check if user is authenticated
+    authentik:
+      forwardAuth:
+        address: http://authentik-server:9000/outpost.goauthentik.io/auth/traefik
+        trustForwardHeader: true
+        authResponseHeaders:
+          - X-authentik-username
+          - X-authentik-groups
+          - X-authentik-email
+          - X-authentik-name
+          - X-authentik-uid
+          - X-authentik-jwt
+          - X-authentik-meta-jwks
+          - X-authentik-meta-outpost
+          - X-authentik-meta-provider
+          - X-authentik-meta-app
+          - X-authentik-meta-version
+
+    # Security Headers
+    # Adds security headers to all responses
+    security-headers:
+      headers:
+        browserXssFilter: true
+        contentTypeNosniff: true
+        forceSTSHeader: true
+        frameDeny: true
+        stsIncludeSubdomains: true
+        stsPreload: true
+        stsSeconds: 31536000
+        customFrameOptionsValue: "SAMEORIGIN"
+        customResponseHeaders:
+          X-Robots-Tag: "none,noarchive,nosnippet,notranslate,noimageindex"
+
+    # Rate Limiting
+    # Prevents abuse by limiting requests per IP
+    rate-limit:
+      rateLimit:
+        average: 100
+        burst: 50
+        period: 1m
+
+    # Compression
+    # Compresses responses to reduce bandwidth
+    compression:
+      compress: {}

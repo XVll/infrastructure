@@ -1,0 +1,81 @@
+# Traefik Services - Backend Application Targets
+
+http:
+  # Services define WHERE to send traffic (the actual backend servers)
+  services:
+    # Authentik (local on edge VM)
+    authentik-svc:
+      loadBalancer:
+        servers:
+          - url: "http://authentik-server:9000"
+
+    # Observability VM (10.10.10.112)
+    portainer:
+      loadBalancer:
+        servers:
+          - url: "https://10.10.10.112:9443"
+        serversTransport: insecureTransport
+
+    grafana:
+      loadBalancer:
+        servers:
+          - url: "http://10.10.10.112:3000"
+
+    # VM 4: Media Apps (10.10.10.13)
+    sonarr:
+      loadBalancer:
+        servers:
+          - url: "http://10.10.10.13:8989"
+
+    radarr:
+      loadBalancer:
+        servers:
+          - url: "http://10.10.10.13:7878"
+
+    prowlarr:
+      loadBalancer:
+        servers:
+          - url: "http://10.10.10.13:9696"
+
+    jellyfin:
+      loadBalancer:
+        servers:
+          - url: "http://10.10.10.13:8096"
+
+    qbittorrent:
+      loadBalancer:
+        servers:
+          - url: "http://10.10.10.13:8080"
+
+    n8n:
+      loadBalancer:
+        servers:
+          - url: "http://10.10.10.13:5678"
+
+    paperless:
+      loadBalancer:
+        servers:
+          - url: "http://10.10.10.13:8000"
+
+    # VM 5: Coolify (10.10.10.14)
+    coolify:
+      loadBalancer:
+        servers:
+          - url: "http://10.10.10.14:8000"
+
+    # VM 2: MinIO (10.10.10.11)
+    minio-console:
+      loadBalancer:
+        servers:
+          - url: "http://10.10.10.11:9001"
+
+    minio-api:
+      loadBalancer:
+        servers:
+          - url: "http://10.10.10.11:9000"
+
+  # Transports - Connection Settings for Backend Servers
+  serversTransports:
+    # Skip TLS verification for self-signed certs (like Portainer)
+    insecureTransport:
+      insecureSkipVerify: true

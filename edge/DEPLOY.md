@@ -7,6 +7,25 @@ Fixed Cloudflare certificate issues by:
 2. Added routers for Portainer and Authentik
 3. Configured wildcard certificate: `*.onurx.com`
 4. Setup AdGuard DNS rewrites (see ADGUARD-DNS-SETUP.md)
+5. Reorganized Traefik config into separate files by purpose
+
+## Traefik Configuration Structure
+
+File-based configuration organized into 3 files:
+
+```
+edge/traefik/config/dynamic/
+├── middlewares.yml  - Request processors (auth, headers, rate limiting)
+├── services.yml     - Backend server targets (IPs and ports)
+└── routers.yml      - Traffic routing rules (domain matching)
+```
+
+**Why split?** Each file has a clear purpose:
+- **middlewares.yml**: authentik forward auth, security headers, rate limiting, compression
+- **services.yml**: Backend URLs for all apps (Grafana at 10.10.10.112:3000, Sonarr at 10.10.10.13:8989, etc.)
+- **routers.yml**: Domain matching rules (grafana.onurx.com → grafana service → authentik + security-headers middlewares)
+
+Traefik auto-loads all `.yml` files from `dynamic/` directory and hot-reloads on changes.
 
 ## Deploy on Edge VM (10.10.10.110)
 
