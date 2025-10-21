@@ -33,7 +33,7 @@ This is a homelab infrastructure repository for managing Docker-based services a
 | VM | IP | Directory | Services |
 |----|-----|-----------|----------|
 | db | 10.10.10.111 | `/opt/homelab` (→ `db/`) | MongoDB, PostgreSQL, Redis, MinIO |
-| observability | 10.10.10.112 | `/opt/homelab` (→ `observability/`) | Komodo, Prometheus, Grafana, Loki |
+| observability | 10.10.10.112 | `/opt/homelab` (→ `observability/`) | Portainer, Prometheus, Grafana, Loki |
 | edge | 10.10.10.110 | `/opt/homelab` (→ `edge/`) | Traefik, AdGuard, Authentik |
 | media | 10.10.10.113 | `/opt/homelab` (→ `media/`) | Jellyfin, Arr Stack, n8n, Paperless |
 | coolify | 10.10.10.114 | Custom install | Coolify PaaS |
@@ -41,8 +41,8 @@ This is a homelab infrastructure repository for managing Docker-based services a
 ### Deployment Strategy
 
 Services are deployed progressively in dependency order:
-1. **Phase 1**: MongoDB (required by Komodo) → Komodo (management UI)
-2. **Phase 2**: PostgreSQL, Redis, MinIO → Traefik → AdGuard → Authentik
+1. **Phase 1**: MongoDB, PostgreSQL, Redis, MinIO (databases) → Portainer (management UI)
+2. **Phase 2**: Traefik → AdGuard → Authentik
 3. **Phase 3**: Prometheus → Grafana → Loki → Alloy
 4. **Phase 4**: Media services, n8n, Paperless, Coolify
 
@@ -62,21 +62,21 @@ op run --env-file=.env -- docker compose up -d service1 service2
 op run --env-file=.env -- docker compose up -d
 ```
 
-### Komodo Periphery Setup
+### Portainer Setup
 
-Install Periphery agent on each VM to allow Komodo management:
-```bash
-# Install Periphery as systemd service
-curl -sSL https://raw.githubusercontent.com/moghtech/komodo/main/scripts/setup-periphery.py | sudo python3
+Portainer deployed on observability VM manages local Docker. To add remote VMs as endpoints:
 
-# Enable on boot
-sudo systemctl enable periphery
+**Option 1 - Edge Agent (Recommended):**
+1. In Portainer UI: Settings → Endpoints → Add Endpoint → Edge Agent
+2. Copy the Edge Agent deployment command
+3. Run on remote VM to install agent
 
-# Check status
-sudo systemctl status periphery
-```
+**Option 2 - Docker API:**
+1. Expose Docker API on remote VM (requires TLS for security)
+2. In Portainer UI: Add Endpoint → Docker → TCP connection
+3. Enter: `tcp://<vm-ip>:2376` with TLS certificates
 
-Then add server in Komodo UI with address: `http://<vm-ip>:8120`
+**Access:** https://10.10.10.112:9443
 
 ### Checking Status
 
@@ -230,7 +230,7 @@ infrastructure/
 ├── observability/
 │   ├── docker-compose.yml
 │   ├── .env
-│   ├── komodo/data/
+│   ├── portainer/data/
 │   ├── prometheus/
 │   │   ├── config/
 │   │   └── data/
