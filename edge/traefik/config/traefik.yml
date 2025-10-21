@@ -8,7 +8,7 @@ global:
 # API and Dashboard
 api:
   dashboard: true
-  insecure: false
+  insecure: true
 
 # Entry Points
 entryPoints:
