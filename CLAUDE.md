@@ -105,6 +105,32 @@ docker compose pull <service-name>
 op run --env-file=.env -- docker compose up -d <service-name>
 ```
 
+### Completely Removing and Reinstalling a Service
+
+```bash
+# Stop and remove container + named volumes
+docker compose down <service-name> -v
+
+# Remove bind mount data (./service/data directories)
+sudo rm -rf <service-name>/data/*
+
+# Remove from database if service uses one
+# MongoDB example (for Komodo):
+docker exec -it mongodb mongosh --host 10.10.10.111:27017 -u <user> -p <pass> --authenticationDatabase admin --eval "use <dbname>; db.dropDatabase();"
+
+# PostgreSQL example (for Authentik):
+docker exec -it postgres psql -U postgres -c "DROP DATABASE <dbname>;"
+
+# Redeploy fresh
+docker compose pull <service-name>
+op run --env-file=.env -- docker compose up -d <service-name>
+
+# Clean up dangling resources
+docker system prune -f
+```
+
+**Note:** `docker compose down -v` removes named volumes but does NOT delete bind mount directories. You must manually remove bind mount data.
+
 ### Testing Database Connections
 
 ```bash
