@@ -13,10 +13,10 @@
 - [x] MinIO (db host - 10.10.10.111)
 - [x] Portainer (observability host - 10.10.10.112)
 
-### Phase 2: Edge Services 🚧 IN PROGRESS
+### Phase 2: Edge Services ✅ COMPLETE
 - [x] Traefik (edge host - 10.10.10.110) - Deployed, SSL working
 - [x] AdGuard Home (edge host - 10.10.10.110) - Deployed, DNS rewrites configured
-- [ ] Authentik SSO (edge host - 10.10.10.110) - NEXT
+- [x] Authentik SSO (edge host - 10.10.10.110) - Deployed, admin account: akadmin
 
 ### Phase 3: Observability ⏳ PENDING
 - [ ] Prometheus (observability host - 10.10.10.112)
@@ -530,24 +530,54 @@ Deploy in order:
 
 ## Next Steps
 
-1. **Deploy AdGuard Home** (edge VM) - READY NOW
-   - Run: `docker compose up -d adguard`
-   - Complete initial setup at `http://10.10.10.110:3000`
-   - Update router DNS to `10.10.10.110`
-   - Test DNS resolution
+### Current Status (Session End)
+- ✅ Phase 1 Complete: Databases + Portainer
+- ✅ Phase 2 Complete: Traefik + AdGuard + Authentik deployed
+- ⏳ Phase 2 Incomplete: Authentik NOT configured yet (just deployed)
+- 🔴 **CRITICAL**: Authentik login works (http://10.10.10.110:9000, user: akadmin) but NO outpost or applications configured
 
-2. **Deploy Authentik** (edge VM)
-   - Requires AdGuard DNS working
-   - Create databases on db host
-   - Configure forward auth
+### Immediate Next Session Tasks
 
-3. **Deploy Observability Stack** (observability VM)
+**1. Configure Authentik Outpost for Traefik Forward Auth**
+   - Access Authentik: `http://10.10.10.110:9000` (user: akadmin)
+   - Go to Applications → Outposts
+   - Create Proxy Outpost pointing to Traefik
+   - Configure integration URL
+
+**2. Create Authentik Applications**
+   - Create application for each protected service:
+     - Grafana, Sonarr, Radarr, Prowlarr, Jellyfin
+     - qBittorrent, n8n, Paperless, Coolify, MinIO Console
+   - Configure forward auth provider for each
+   - Test authentication flow
+
+**3. Update Router DNS to AdGuard**
+   - Set primary DNS to `10.10.10.110` in UniFi Dream Machine
+   - Test DNS resolution from clients
+   - Verify all *.onurx.com domains resolve to 10.10.10.110
+
+**4. Test End-to-End Flow**
+   - Access https://grafana.onurx.com
+   - Should redirect to Authentik login
+   - Login with akadmin
+   - Should redirect back to Grafana
+   - Verify all services protected
+
+### After Authentik Configuration
+
+**5. Deploy Observability Stack** (observability VM)
    - Prometheus → Grafana → Loki → Alloy
    - Configure dashboards
 
-4. **Deploy Media Services** (media VM)
+**6. Deploy Media Services** (media VM)
    - Jellyfin → Prowlarr → Sonarr/Radarr → qBittorrent
    - n8n and Paperless
+
+### Important Notes for Next Session
+- AdGuard config file removed from git (causes conflicts)
+- DNS rewrites managed via AdGuard UI at http://10.10.10.110:8888
+- Authentik uses PostgreSQL on db host (10.10.10.111)
+- All services currently accessible without auth (Authentik not protecting yet)
 
 ---
 
