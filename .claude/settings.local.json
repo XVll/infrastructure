@@ -18,7 +18,8 @@
       "Bash(cp:*)",
       "WebFetch(domain:komo.do)",
       "WebSearch",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(ssh:*)"
     ],
     "deny": [],
     "ask": []
