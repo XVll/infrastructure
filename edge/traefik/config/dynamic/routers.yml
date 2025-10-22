@@ -21,6 +21,7 @@ http:
         - websecure
       service: portainer
       middlewares:
+        - authentik
         - security-headers
       tls:
         certResolver: cloudflare
