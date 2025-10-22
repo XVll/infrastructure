@@ -33,6 +33,49 @@
 
 ## Quick Reference Notes
 
+### 🔴 CRITICAL: Always Use Existing Infrastructure Services
+
+**NEVER deploy separate databases or services when we already have them!**
+
+**Use these existing services from db host (10.10.10.111):**
+- **PostgreSQL** - For any app needing SQL database
+- **MongoDB** - For any app needing NoSQL/document database
+- **Redis** - For caching, sessions, queues
+- **MinIO** - For object storage (S3-compatible)
+
+**How to connect:**
+```yaml
+# PostgreSQL
+DATABASE_URL: postgresql://username:password@10.10.10.111:5432/dbname
+
+# MongoDB
+MONGO_URL: mongodb://username:password@10.10.10.111:27017/dbname
+
+# Redis
+REDIS_URL: redis://:password@10.10.10.111:6379/0
+
+# MinIO (S3)
+S3_ENDPOINT: http://10.10.10.111:9000
+AWS_ACCESS_KEY_ID: (from 1Password)
+AWS_SECRET_ACCESS_KEY: (from 1Password)
+```
+
+**For new apps:**
+1. Check if app needs database → use PostgreSQL or MongoDB
+2. Check if app needs caching → use Redis
+3. Check if app needs file storage → use MinIO
+4. Create database/user on db host if needed
+5. Add credentials to 1Password
+6. Configure app to use existing service
+
+**Benefits:**
+- ✅ Centralized backup and maintenance
+- ✅ Lower resource usage
+- ✅ Consistent connection patterns
+- ✅ Single source of truth for data
+
+---
+
 ### Traefik (Reverse Proxy)
 
 **Config Structure:**

@@ -19,7 +19,8 @@
       "WebFetch(domain:komo.do)",
       "WebSearch",
       "Bash(git add:*)",
-      "Bash(ssh:*)"
+      "Bash(ssh:*)",
+      "WebFetch(domain:github.com)"
     ],
     "deny": [],
     "ask": []
