@@ -168,26 +168,6 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  authentik-proxy:
-    image: ghcr.io/goauthentik/proxy:latest
-    container_name: authentik-proxy
-    restart: unless-stopped
-    environment:
-      AUTHENTIK_HOST: http://authentik-server:9000
-      AUTHENTIK_INSECURE: "false"
-      AUTHENTIK_TOKEN: ${AUTHENTIK_OUTPOST_TOKEN}
-    ports:
-      - "10.10.10.110:9300:9000"    # Forward auth endpoint
-    networks:
-      - edge_net
-    depends_on:
-      - authentik-server
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-
 networks:
   edge_net:
     driver: bridge
