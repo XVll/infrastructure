@@ -175,7 +175,7 @@ services:
           - NET_ADMIN
           - SYS_ADMIN
           - SYS_RESOURCE
-      network_mode: host
+      network_mode: edge_net
       environment:
           - NB_SETUP_KEY: ${NETBIRD_TOKEN}
       volumes:
