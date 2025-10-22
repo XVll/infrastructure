@@ -530,54 +530,47 @@ Deploy in order:
 
 ## Next Steps
 
-### Current Status (Session End)
-- ✅ Phase 1 Complete: Databases + Portainer
-- ✅ Phase 2 Complete: Traefik + AdGuard + Authentik deployed
-- ⏳ Phase 2 Incomplete: Authentik NOT configured yet (just deployed)
-- 🔴 **CRITICAL**: Authentik login works (http://10.10.10.110:9000, user: akadmin) but NO outpost or applications configured
+### Current Status
+- ✅ **Phase 1 COMPLETE**: Databases (MongoDB, PostgreSQL, Redis, MinIO) + Portainer
+- ✅ **Phase 2 COMPLETE**: Traefik + AdGuard + Authentik
+  - Traefik reverse proxy with SSL (Cloudflare DNS-01)
+  - AdGuard Home DNS server deployed
+  - Authentik SSO with embedded outpost configured
+  - Forward auth middleware ready (uses `authentik` middleware in routers.yml)
+  - Admin user: `akadmin` (login: http://10.10.10.110:9000)
+- ⏳ **Phase 3 PENDING**: Observability Stack (Prometheus, Grafana, Loki, Alloy)
+- ⏳ **Phase 4 PENDING**: Applications (Jellyfin, Arr Stack, n8n, Paperless, Coolify)
 
-### Immediate Next Session Tasks
+### Immediate Next Tasks
 
-**1. Configure Authentik Outpost for Traefik Forward Auth**
-   - Access Authentik: `http://10.10.10.110:9000` (user: akadmin)
-   - Go to Applications → Outposts
-   - Create Proxy Outpost pointing to Traefik
-   - Configure integration URL
+**1. Deploy Observability Stack** (observability VM - 10.10.10.112)
+   - Prometheus (metrics collection)
+   - Grafana (dashboards + visualization)
+   - Loki (log aggregation)
+   - Alloy (metrics/logs collector)
 
-**2. Create Authentik Applications**
-   - Create application for each protected service:
-     - Grafana, Sonarr, Radarr, Prowlarr, Jellyfin
-     - qBittorrent, n8n, Paperless, Coolify, MinIO Console
-   - Configure forward auth provider for each
-   - Test authentication flow
+**2. Deploy Media Services** (media VM - 10.10.10.113)
+   - Jellyfin (media server)
+   - Prowlarr → Sonarr/Radarr (media management)
+   - qBittorrent (download client)
+   - n8n (workflow automation)
+   - Paperless (document management)
 
-**3. Update Router DNS to AdGuard**
-   - Set primary DNS to `10.10.10.110` in UniFi Dream Machine
-   - Test DNS resolution from clients
-   - Verify all *.onurx.com domains resolve to 10.10.10.110
+**3. Deploy Coolify** (coolify VM - 10.10.10.114)
+   - Self-hosted PaaS platform
 
-**4. Test End-to-End Flow**
-   - Access https://grafana.onurx.com
-   - Should redirect to Authentik login
-   - Login with akadmin
-   - Should redirect back to Grafana
-   - Verify all services protected
+**4. Cutover from Old Infrastructure**
+   - Update DNS to point to new infrastructure
+   - Test all services end-to-end
+   - Verify Authentik forward auth works
+   - Decommission old infrastructure
 
-### After Authentik Configuration
-
-**5. Deploy Observability Stack** (observability VM)
-   - Prometheus → Grafana → Loki → Alloy
-   - Configure dashboards
-
-**6. Deploy Media Services** (media VM)
-   - Jellyfin → Prowlarr → Sonarr/Radarr → qBittorrent
-   - n8n and Paperless
-
-### Important Notes for Next Session
-- AdGuard config file removed from git (causes conflicts)
-- DNS rewrites managed via AdGuard UI at http://10.10.10.110:8888
-- Authentik uses PostgreSQL on db host (10.10.10.111)
-- All services currently accessible without auth (Authentik not protecting yet)
+### Important Notes
+- **Authentik Forward Auth**: Uses embedded outpost (no separate container needed)
+- **Forward Auth Endpoint**: `http://authentik-server:9000/outpost.goauthentik.io/auth/traefik`
+- **Protected Services**: Add `authentik` middleware to router in `routers.yml`
+- **DNS rewrites**: Managed via AdGuard UI at http://10.10.10.110:8888
+- **Testing**: Will test when switching from old to new infrastructure
 
 ---
 
