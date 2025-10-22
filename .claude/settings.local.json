@@ -20,7 +20,8 @@
       "WebSearch",
       "Bash(git add:*)",
       "Bash(ssh:*)",
-      "WebFetch(domain:github.com)"
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:docs.netbird.io)"
     ],
     "deny": [],
     "ask": []
