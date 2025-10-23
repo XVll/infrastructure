@@ -21,7 +21,8 @@
       "Bash(git add:*)",
       "Bash(ssh:*)",
       "WebFetch(domain:github.com)",
-      "WebFetch(domain:docs.netbird.io)"
+      "WebFetch(domain:docs.netbird.io)",
+      "WebFetch(domain:www.netdata.cloud)"
     ],
     "deny": [],
     "ask": []
