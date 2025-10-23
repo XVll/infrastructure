@@ -234,7 +234,7 @@ services:
       - GRAYLOG_MONGODB_URI=mongodb://${MONGODB_ROOT_USER}:${MONGODB_ROOT_PASSWORD}@10.10.10.111:27017/graylog?authSource=admin
     entrypoint: /usr/bin/tini -- wait-for-it graylog-datanode:8999 -- /docker-entrypoint.sh
     volumes:
-      - ./graylog/data:/usr/share/graylog/data
+      - ./graylog/data:/usr/share/graylog/data/data
     networks:
       - obs_net
     depends_on:
