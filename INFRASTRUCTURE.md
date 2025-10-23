@@ -13,10 +13,11 @@
 - [x] MinIO (db host - 10.10.10.111)
 - [x] Portainer (observability host - 10.10.10.112)
 
-### Phase 2: Edge Services 🟡 IN PROGRESS
+### Phase 2: Edge Services ✅ DONE
 - [x] Traefik (edge host - 10.10.10.110) - Deployed, SSL working, auto-reload enabled
 - [x] AdGuard Home (edge host - 10.10.10.110) - Deployed, configured, DNS rewrites active
 - [x] Authentik SSO (edge host - 10.10.10.110) - Deployed, ready to configure (admin: akadmin)
+- [x] NetBird VPN (edge host - 10.10.10.110) - Client deployed, connected to NetBird cloud
 
 ### Phase 3: Observability ⏳ PENDING
 - [ ] Prometheus (observability host - 10.10.10.112)
@@ -340,6 +341,75 @@ Routes to backend:
 
 ---
 
+### NetBird VPN (Remote Access)
+
+**Status:** ✅ Deployed (NetBird Cloud managed service)
+
+**Purpose:** Secure remote access to homelab infrastructure from anywhere
+
+**Client Location:** Edge VM (10.10.10.110) - container name: `netbird`
+
+**Access:** https://app.netbird.io (cloud dashboard)
+
+**Configuration:**
+- **Type:** Client-only (using NetBird cloud infrastructure, not self-hosted)
+- **Setup Key:** Stored in 1Password (op://Server/netbird/token)
+- **Network Mode:** Host (required for WireGuard)
+- **Capabilities:** NET_ADMIN, SYS_ADMIN, SYS_RESOURCE
+- **Data:** `./netbird/data/netbird-client:/var/lib/netbird`
+
+**DNS Resolution:**
+- **Internal domains** (`*.onurx.com`): Resolved via AdGuard Home (10.10.10.110)
+- **Critical:** Ensure no DNS blocking rules for home network IP range in NetBird console
+- **Test:** `nslookup proxmox.onurx.com` should resolve correctly when connected via NetBird
+
+**Deployment:**
+```bash
+# On edge VM
+cd /opt/homelab
+op run --env-file=.env -- docker compose up -d netbird
+
+# Check status
+docker compose logs -f netbird
+
+# Should see: "Connected to NetBird network"
+```
+
+**Network Routes in NetBird Console:**
+- Add route: `10.10.10.0/24` → routing peer: netbird-edge (for internal network access)
+
+**Access Control:**
+- Ensure peer-to-peer communication allowed
+- No DNS restrictions for your home network IP range
+
+**Adding More Peers:**
+To add other VMs or devices to NetBird:
+1. Generate setup key in NetBird console (Settings → Setup Keys)
+2. Install NetBird client on device
+3. Connect using setup key
+4. Device will appear in NetBird console
+
+**Benefits:**
+- ✅ Secure remote access from anywhere
+- ✅ No port forwarding needed on router
+- ✅ All homelab services accessible via `*.onurx.com` domains
+- ✅ Encrypted WireGuard tunnels
+- ✅ Works through NAT/firewalls
+
+**Troubleshooting:**
+```bash
+# Check connection status
+docker exec netbird netbird status
+
+# View routes
+docker exec netbird netbird routes list
+
+# Restart if needed
+docker compose restart netbird
+```
+
+---
+
 ### Database Connections
 
 All services connect to db host (10.10.10.111):
@@ -585,7 +655,7 @@ MONGODB_URL=mongodb://app:pass@10.10.10.111:27017/app
 |----|-----|----------|
 | db | 10.10.10.111 | MongoDB, PostgreSQL, Redis, MinIO |
 | observability | 10.10.10.112 | Portainer, Prometheus, Grafana, Loki, Alloy |
-| edge | 10.10.10.110 | Traefik, AdGuard, Authentik |
+| edge | 10.10.10.110 | Traefik, AdGuard, Authentik, NetBird |
 | media | 10.10.10.113 | Jellyfin, Arr Stack, n8n, Paperless, qBittorrent |
 | coolify | 10.10.10.114 | Coolify PaaS |
 
@@ -629,12 +699,13 @@ Deploy in order:
 
 ### Current Status
 - ✅ **Phase 1 COMPLETE**: Databases (MongoDB, PostgreSQL, Redis, MinIO) + Portainer
-- ✅ **Phase 2 COMPLETE**: Traefik + AdGuard + Authentik
+- ✅ **Phase 2 COMPLETE**: Traefik + AdGuard + Authentik + NetBird
   - Traefik reverse proxy with SSL (Cloudflare DNS-01)
   - AdGuard Home DNS server deployed
   - Authentik SSO with embedded outpost configured
   - Forward auth middleware ready (uses `authentik` middleware in routers.yml)
   - Admin user: `akadmin` (login: http://10.10.10.110:9000)
+  - NetBird VPN client deployed (remote access working, DNS resolving *.onurx.com)
 - ⏳ **Phase 3 PENDING**: Observability Stack (Prometheus, Grafana, Loki, Alloy)
 - ⏳ **Phase 4 PENDING**: Applications (Jellyfin, Arr Stack, n8n, Paperless, Coolify)
 
@@ -671,4 +742,4 @@ Deploy in order:
 
 ---
 
-**Last Updated:** 2025-10-21
+**Last Updated:** 2025-10-23

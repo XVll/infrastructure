@@ -168,19 +168,32 @@ services:
         max-size: "10m"
         max-file: "3"
 
+  # ============================================================================
+  # 4. NETBIRD - VPN Client (NetBird Cloud)
+  # ============================================================================
+  # Connects to NetBird cloud infrastructure for remote access
+  # Uses host network mode for WireGuard connectivity
+  # DNS configuration managed via NetBird cloud console
+
   netbird:
-      container_name: netbird
-      hostname: netbird
-      cap_add:
-          - NET_ADMIN
-          - SYS_ADMIN
-          - SYS_RESOURCE
-      network_mode: host
-      environment:
-          - NB_SETUP_KEY=${NETBIRD_TOKEN}
-      volumes:
-          - ./netbird/data/netbird-client:/var/lib/netbird
-      image: netbirdio/netbird:latest
+    image: netbirdio/netbird:latest
+    container_name: netbird
+    hostname: netbird-edge
+    restart: unless-stopped
+    network_mode: host
+    cap_add:
+      - NET_ADMIN
+      - SYS_ADMIN
+      - SYS_RESOURCE
+    environment:
+      - NB_SETUP_KEY=${NETBIRD_TOKEN}
+    volumes:
+      - ./netbird/data/netbird-client:/var/lib/netbird
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 networks:
   edge_net:
