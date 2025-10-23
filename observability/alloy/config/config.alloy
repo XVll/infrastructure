@@ -172,22 +172,24 @@ loki.process "add_labels" {
 // ============================================================================
 // LOGS: System Logs Collection (optional - /var/log)
 // ============================================================================
-
-loki.source.file "system_logs" {
-  targets = [
-    {
-      __path__ = "/var/log/syslog",
-      job      = "syslog",
-      host     = "observability-vm",
-    },
-    {
-      __path__ = "/var/log/auth.log",
-      job      = "auth",
-      host     = "observability-vm",
-    },
-  ]
-  forward_to = [loki.write.loki.receiver]
-}
+// Disabled: Container doesn't have access to host system logs
+// To enable: ensure /var/log volume mount includes these files
+//
+// loki.source.file "system_logs" {
+//   targets = [
+//     {
+//       __path__ = "/var/log/syslog",
+//       job      = "syslog",
+//       host     = "observability-vm",
+//     },
+//     {
+//       __path__ = "/var/log/auth.log",
+//       job      = "auth",
+//       host     = "observability-vm",
+//     },
+//   ]
+//   forward_to = [loki.write.loki.receiver]
+// }
 
 // ============================================================================
 // LOGS: Loki Write Endpoint

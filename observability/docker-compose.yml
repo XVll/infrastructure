@@ -182,10 +182,11 @@ services:
     environment:
       - HOSTNAME=observability-vm
     healthcheck:
-      test: ["CMD", "wget", "--tries=1", "--spider", "http://localhost:12345/-/ready"]
+      test: ["CMD", "wget", "--tries=1", "--spider", "--no-verbose", "http://localhost:12345/-/healthy"]
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 30s
     logging:
       driver: "json-file"
       options:
