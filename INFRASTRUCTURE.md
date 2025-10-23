@@ -13,10 +13,10 @@
 - [x] MinIO (db host - 10.10.10.111)
 - [x] Portainer (observability host - 10.10.10.112)
 
-### Phase 2: Edge Services ✅ COMPLETE
-- [x] Traefik (edge host - 10.10.10.110) - Deployed, SSL working
-- [x] AdGuard Home (edge host - 10.10.10.110) - Deployed, DNS rewrites configured
-- [x] Authentik SSO (edge host - 10.10.10.110) - Deployed, admin account: akadmin
+### Phase 2: Edge Services 🟡 IN PROGRESS
+- [x] Traefik (edge host - 10.10.10.110) - Deployed, SSL working, auto-reload enabled
+- [x] AdGuard Home (edge host - 10.10.10.110) - Deployed, configured, DNS rewrites active
+- [x] Authentik SSO (edge host - 10.10.10.110) - Deployed, ready to configure (admin: akadmin)
 
 ### Phase 3: Observability ⏳ PENDING
 - [ ] Prometheus (observability host - 10.10.10.112)
@@ -75,47 +75,57 @@ edge/traefik/config/dynamic/
 
 ### AdGuard Home (DNS)
 
-**Status:** Ready to deploy
+**Status:** ✅ Deployed and Configured
 
 **Purpose:** Internal DNS resolution for `*.onurx.com` domains
 
-**Config:** `edge/adguard/data/conf/AdGuardHome.yaml`
+**Access:** `http://10.10.10.110:8888` (admin login required)
 
-**Deploy:**
+**Configuration Summary:**
+- **Upstream DNS**: `tls://one.one.one.one`, `tls://unfiltered.adguard-dns.com`, `tls://dns.google`
+- **Bootstrap DNS**: Cloudflare (1.1.1.1, 1.0.0.1) + AdGuard IPs
+- **Query mode**: Parallel requests (fastest resolution)
+- **DNSSEC**: Enabled
+- **Statistics retention**: 30 days
+- **Plain DNS**: Enabled on port 53 (required)
+- **Encryption**: Disabled (internal use only, accessed via HTTP)
+
+**DNS Rewrites:**
+Wildcard rewrite configured: `*.onurx.com` → `10.10.10.110`
+
+Covers all services:
+- auth, portainer, grafana, prometheus
+- sonarr, radarr, prowlarr, jellyfin, qbittorrent
+- n8n, paperless, coolify
+- minio (console), s3 (API)
+
+**Persistent Clients (Optional):**
+Add VM IPs for better visibility:
+- `10.10.10.110` → edge-vm
+- `10.10.10.111` → db-vm
+- `10.10.10.112` → observability-vm
+- `10.10.10.113` → media-vm
+- `10.10.10.114` → coolify-vm
+
+**Testing:**
 ```bash
-# On edge VM (10.10.10.110)
-cd /opt/homelab
-docker compose up -d adguard
+# Test DNS resolution
+nslookup auth.onurx.com 10.10.10.110
+# Should return: 10.10.10.110
 
-# Check logs
-docker compose logs -f adguard
-
-# Access web UI
-http://10.10.10.110:8888
+# Test HTTPS access
+curl -I https://auth.onurx.com
+# Should return: HTTP/2 200 (if service running)
 ```
 
-**Initial Setup:**
-1. Access `http://10.10.10.110:3000` on first run
-2. Create admin account (username: admin)
-3. Skip other setup steps (config already done)
-4. Access main UI at `http://10.10.10.110:8888`
+**WireGuard Integration:**
+Update WireGuard config to use AdGuard:
+```ini
+[Interface]
+DNS = 10.10.10.110
+```
 
-**DNS Rewrites (Pre-configured):**
-All `*.onurx.com` domains → `10.10.10.110`:
-- auth, portainer, grafana, sonarr, radarr, prowlarr
-- jellyfin, qbittorrent, n8n, paperless, coolify
-- minio, s3
-
-**After Deployment:**
-1. Update router DNS to `10.10.10.110`
-2. Test: `nslookup grafana.onurx.com` should return `10.10.10.110`
-3. Test SSL: `https://grafana.onurx.com` should work with valid cert
-
-**Why AdGuard?**
-- Config-as-code (YAML file in git)
-- DNS rewrites pre-configured
-- Modern, actively developed
-- Fits infrastructure-as-code workflow
+**Next Step:** Update router DNS to `10.10.10.110` for all devices
 
 ---
 
@@ -240,6 +250,50 @@ psql -h 10.10.10.111 -U authentik -d authentik
 docker run --rm redis:alpine redis-cli -h 10.10.10.111 -a $(op read "op://Server/redis/password") ping
 # Should return: PONG
 ```
+
+---
+
+### Docker Networking (Bridge vs LXC)
+
+**Key Difference from LXC:**
+- **LXC**: Each service has its own IP (10.10.10.115, 10.10.10.116, etc.)
+- **Docker Bridge**: Multiple containers share one VM IP (10.10.10.110)
+
+**How Traefik Routes to Containers:**
+
+**Same VM (containers):**
+```yaml
+# services.yml - Use container name
+authentik-svc:
+  loadBalancer:
+    servers:
+      - url: "http://authentik-server:9000"  # Docker DNS resolves name
+```
+
+**Different VM (external services):**
+```yaml
+# services.yml - Use VM IP:port
+grafana:
+  loadBalancer:
+    servers:
+      - url: "http://10.10.10.112:3000"  # Direct IP connection
+```
+
+**Traffic Flow:**
+```
+User → DNS (AdGuard) → *.onurx.com = 10.10.10.110
+    ↓
+Traefik (10.10.10.110:443) inspects Host header
+    ↓
+Routes to backend:
+  - Container name (same VM): http://authentik-server:9000
+  - External IP (other VM): http://10.10.10.112:3000
+```
+
+**Visibility Trade-off:**
+- AdGuard sees only VM IPs (10.10.10.110), not individual containers
+- Solution: Add VMs as persistent clients for VM-level visibility
+- Alternative: Use macvlan networking for container-level IPs (advanced)
 
 ---
 
@@ -530,54 +584,52 @@ Deploy in order:
 
 ## Next Steps
 
-### Current Status (Session End)
-- ✅ Phase 1 Complete: Databases + Portainer
-- ✅ Phase 2 Complete: Traefik + AdGuard + Authentik deployed
-- ⏳ Phase 2 Incomplete: Authentik NOT configured yet (just deployed)
-- 🔴 **CRITICAL**: Authentik login works (http://10.10.10.110:9000, user: akadmin) but NO outpost or applications configured
+### Current Status
+- ✅ Phase 1 Complete: Databases + Portainer deployed
+- 🟡 Phase 2 In Progress:
+  - ✅ Traefik deployed with SSL (Cloudflare DNS-01)
+  - ✅ AdGuard deployed and configured (DNS rewrites active)
+  - ✅ Authentik deployed, ready to configure
+- ⏳ Phase 3 Pending: Observability stack (Prometheus, Grafana, Loki, Alloy)
+- ⏳ Phase 4 Pending: Applications (Jellyfin, Arr Stack, n8n, Paperless, Coolify)
 
-### Immediate Next Session Tasks
+### Immediate Tasks
 
-**1. Configure Authentik Outpost for Traefik Forward Auth**
-   - Access Authentik: `http://10.10.10.110:9000` (user: akadmin)
-   - Go to Applications → Outposts
-   - Create Proxy Outpost pointing to Traefik
-   - Configure integration URL
-
-**2. Create Authentik Applications**
-   - Create application for each protected service:
-     - Grafana, Sonarr, Radarr, Prowlarr, Jellyfin
-     - qBittorrent, n8n, Paperless, Coolify, MinIO Console
-   - Configure forward auth provider for each
+**1. Configure Authentik SSO** (NEXT - IN PROGRESS)
+   - Access: `http://10.10.10.110:9000` OR `https://auth.onurx.com` (user: akadmin)
+   - Create Proxy Outpost for Traefik forward auth
+   - Create applications for protected services
    - Test authentication flow
 
-**3. Update Router DNS to AdGuard**
-   - Set primary DNS to `10.10.10.110` in UniFi Dream Machine
-   - Test DNS resolution from clients
-   - Verify all *.onurx.com domains resolve to 10.10.10.110
+**2. Update Router DNS to AdGuard**
+   - Set primary DNS to `10.10.10.110` in router (UniFi Dream Machine)
+   - Test DNS resolution from all devices
+   - Verify `*.onurx.com` domains resolve correctly
 
-**4. Test End-to-End Flow**
-   - Access https://grafana.onurx.com
-   - Should redirect to Authentik login
-   - Login with akadmin
-   - Should redirect back to Grafana
-   - Verify all services protected
-
-### After Authentik Configuration
-
-**5. Deploy Observability Stack** (observability VM)
+**3. Deploy Observability Stack** (observability VM - 10.10.10.112)
    - Prometheus → Grafana → Loki → Alloy
-   - Configure dashboards
+   - Configure dashboards and alerts
 
-**6. Deploy Media Services** (media VM)
-   - Jellyfin → Prowlarr → Sonarr/Radarr → qBittorrent
+**4. Deploy Media Services** (media VM - 10.10.10.113)
+   - Jellyfin + Arr Stack + qBittorrent
    - n8n and Paperless
 
-### Important Notes for Next Session
-- AdGuard config file removed from git (causes conflicts)
-- DNS rewrites managed via AdGuard UI at http://10.10.10.110:8888
-- Authentik uses PostgreSQL on db host (10.10.10.111)
-- All services currently accessible without auth (Authentik not protecting yet)
+**5. Deploy Coolify** (coolify VM - 10.10.10.114)
+   - Run Coolify installer (not docker-compose)
+   - Configure database connections to db host
+
+### Key Learnings (This Session)
+- Docker bridge networking: containers share VM IP, Traefik routes by container name
+- AdGuard DNS rewrites: wildcard `*.onurx.com` → `10.10.10.110` (simplest approach)
+- Traffic flow: DNS → Traefik (inspects Host header) → Backend (container/VM)
+- Visibility: AdGuard sees VM-level traffic, not container-level (trade-off vs LXC)
+- WireGuard integration: Update `DNS = 10.10.10.110` to use AdGuard when remote
+
+### Important Notes
+- All services currently accessible without authentication (Authentik not configured yet)
+- Traefik auto-reloads dynamic configs (no restart needed for routing changes)
+- SSL certificates obtained automatically via Cloudflare DNS-01 challenge
+- AdGuard managed via UI at `http://10.10.10.110:8888` (not config-as-code)
 
 ---
 
