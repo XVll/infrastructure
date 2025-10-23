@@ -33,6 +33,49 @@
 
 ## Quick Reference Notes
 
+### 🔴 CRITICAL: Always Use Existing Infrastructure Services
+
+**NEVER deploy separate databases or services when we already have them!**
+
+**Use these existing services from db host (10.10.10.111):**
+- **PostgreSQL** - For any app needing SQL database
+- **MongoDB** - For any app needing NoSQL/document database
+- **Redis** - For caching, sessions, queues
+- **MinIO** - For object storage (S3-compatible)
+
+**How to connect:**
+```yaml
+# PostgreSQL
+DATABASE_URL: postgresql://username:password@10.10.10.111:5432/dbname
+
+# MongoDB
+MONGO_URL: mongodb://username:password@10.10.10.111:27017/dbname
+
+# Redis
+REDIS_URL: redis://:password@10.10.10.111:6379/0
+
+# MinIO (S3)
+S3_ENDPOINT: http://10.10.10.111:9000
+AWS_ACCESS_KEY_ID: (from 1Password)
+AWS_SECRET_ACCESS_KEY: (from 1Password)
+```
+
+**For new apps:**
+1. Check if app needs database → use PostgreSQL or MongoDB
+2. Check if app needs caching → use Redis
+3. Check if app needs file storage → use MinIO
+4. Create database/user on db host if needed
+5. Add credentials to 1Password
+6. Configure app to use existing service
+
+**Benefits:**
+- ✅ Centralized backup and maintenance
+- ✅ Lower resource usage
+- ✅ Consistent connection patterns
+- ✅ Single source of truth for data
+
+---
+
 ### Traefik (Reverse Proxy)
 
 **Config Structure:**
@@ -585,51 +628,46 @@ Deploy in order:
 ## Next Steps
 
 ### Current Status
-- ✅ Phase 1 Complete: Databases + Portainer deployed
-- 🟡 Phase 2 In Progress:
-  - ✅ Traefik deployed with SSL (Cloudflare DNS-01)
-  - ✅ AdGuard deployed and configured (DNS rewrites active)
-  - ✅ Authentik deployed, ready to configure
-- ⏳ Phase 3 Pending: Observability stack (Prometheus, Grafana, Loki, Alloy)
-- ⏳ Phase 4 Pending: Applications (Jellyfin, Arr Stack, n8n, Paperless, Coolify)
+- ✅ **Phase 1 COMPLETE**: Databases (MongoDB, PostgreSQL, Redis, MinIO) + Portainer
+- ✅ **Phase 2 COMPLETE**: Traefik + AdGuard + Authentik
+  - Traefik reverse proxy with SSL (Cloudflare DNS-01)
+  - AdGuard Home DNS server deployed
+  - Authentik SSO with embedded outpost configured
+  - Forward auth middleware ready (uses `authentik` middleware in routers.yml)
+  - Admin user: `akadmin` (login: http://10.10.10.110:9000)
+- ⏳ **Phase 3 PENDING**: Observability Stack (Prometheus, Grafana, Loki, Alloy)
+- ⏳ **Phase 4 PENDING**: Applications (Jellyfin, Arr Stack, n8n, Paperless, Coolify)
 
-### Immediate Tasks
+### Immediate Next Tasks
 
-**1. Configure Authentik SSO** (NEXT - IN PROGRESS)
-   - Access: `http://10.10.10.110:9000` OR `https://auth.onurx.com` (user: akadmin)
-   - Create Proxy Outpost for Traefik forward auth
-   - Create applications for protected services
-   - Test authentication flow
+**1. Deploy Observability Stack** (observability VM - 10.10.10.112)
+   - Prometheus (metrics collection)
+   - Grafana (dashboards + visualization)
+   - Loki (log aggregation)
+   - Alloy (metrics/logs collector)
 
-**2. Update Router DNS to AdGuard**
-   - Set primary DNS to `10.10.10.110` in router (UniFi Dream Machine)
-   - Test DNS resolution from all devices
-   - Verify `*.onurx.com` domains resolve correctly
+**2. Deploy Media Services** (media VM - 10.10.10.113)
+   - Jellyfin (media server)
+   - Prowlarr → Sonarr/Radarr (media management)
+   - qBittorrent (download client)
+   - n8n (workflow automation)
+   - Paperless (document management)
 
-**3. Deploy Observability Stack** (observability VM - 10.10.10.112)
-   - Prometheus → Grafana → Loki → Alloy
-   - Configure dashboards and alerts
+**3. Deploy Coolify** (coolify VM - 10.10.10.114)
+   - Self-hosted PaaS platform
 
-**4. Deploy Media Services** (media VM - 10.10.10.113)
-   - Jellyfin + Arr Stack + qBittorrent
-   - n8n and Paperless
-
-**5. Deploy Coolify** (coolify VM - 10.10.10.114)
-   - Run Coolify installer (not docker-compose)
-   - Configure database connections to db host
-
-### Key Learnings (This Session)
-- Docker bridge networking: containers share VM IP, Traefik routes by container name
-- AdGuard DNS rewrites: wildcard `*.onurx.com` → `10.10.10.110` (simplest approach)
-- Traffic flow: DNS → Traefik (inspects Host header) → Backend (container/VM)
-- Visibility: AdGuard sees VM-level traffic, not container-level (trade-off vs LXC)
-- WireGuard integration: Update `DNS = 10.10.10.110` to use AdGuard when remote
+**4. Cutover from Old Infrastructure**
+   - Update DNS to point to new infrastructure
+   - Test all services end-to-end
+   - Verify Authentik forward auth works
+   - Decommission old infrastructure
 
 ### Important Notes
-- All services currently accessible without authentication (Authentik not configured yet)
-- Traefik auto-reloads dynamic configs (no restart needed for routing changes)
-- SSL certificates obtained automatically via Cloudflare DNS-01 challenge
-- AdGuard managed via UI at `http://10.10.10.110:8888` (not config-as-code)
+- **Authentik Forward Auth**: Uses embedded outpost (no separate container needed)
+- **Forward Auth Endpoint**: `http://authentik-server:9000/outpost.goauthentik.io/auth/traefik`
+- **Protected Services**: Add `authentik` middleware to router in `routers.yml`
+- **DNS rewrites**: Managed via AdGuard UI at http://10.10.10.110:8888
+- **Testing**: Will test when switching from old to new infrastructure
 
 ---
 
