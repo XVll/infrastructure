@@ -23,7 +23,8 @@
       "WebFetch(domain:github.com)",
       "WebFetch(domain:docs.netbird.io)",
       "WebFetch(domain:www.netdata.cloud)",
-      "WebFetch(domain:grafana.com)"
+      "WebFetch(domain:grafana.com)",
+      "Bash(git push:*)"
     ],
     "deny": [],
     "ask": []
