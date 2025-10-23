@@ -401,6 +401,7 @@ rate(node_network_receive_bytes_total[5m])  # Network traffic
 - Loki: `observability/loki/config/config.yml`
 - Alloy: `observability/alloy/config/config.alloy`
 - Grafana Datasources: `observability/grafana/provisioning/datasources/datasources.yml`
+- Grafana Dashboards: `observability/grafana/dashboards/` (auto-provisioned to Homelab folder)
 
 **Deployment:**
 ```bash
@@ -408,9 +409,30 @@ cd /opt/homelab
 op run --env-file=.env -- docker compose up -d prometheus grafana loki alloy
 ```
 
+**Grafana Dashboards:**
+- 3 dashboards added to `observability/grafana/dashboards/`:
+  - `node-exporter-full.json` - System metrics (CPU, RAM, disk, network)
+  - `docker-containers-metrics.json` - Container resource usage
+  - `docker-cadvisor.json` - Docker logs dashboard
+- **Note:** Pre-built dashboards need customization - Alloy uses job names `integrations/unix` and `integrations/cadvisor` instead of standard `node_exporter` and `cadvisor`
+- **Verified Working:** Metrics ARE being collected successfully by Alloy and stored in Prometheus
+- **Next Step:** Customize dashboards to use correct job names or create custom dashboards matching our label structure
+
+**Metrics Collection Status (Verified):**
+```promql
+# Check all scrape targets
+up
+
+# System metrics (CPU, RAM, disk, network)
+job="integrations/unix" - UP ✅
+
+# Docker container metrics (CPU, memory, network, I/O)
+job="integrations/cadvisor" - UP ✅
+```
+
 **Future Enhancements:**
+- Customize dashboards to match Alloy's job names and labels
 - Deploy Alloy on each VM for distributed metrics/logs collection
-- Add pre-built Grafana dashboards for infrastructure monitoring
 - Enable OpenTelemetry receiver in Alloy for app instrumentation
 - Add alerting rules in Prometheus for critical infrastructure events
 
