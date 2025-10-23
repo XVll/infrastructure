@@ -181,12 +181,8 @@ services:
       - loki
     environment:
       - HOSTNAME=observability-vm
-    healthcheck:
-      test: ["CMD", "wget", "--tries=1", "--spider", "--no-verbose", "http://localhost:12345/-/healthy"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
+    # No health check - Alloy doesn't have wget/curl installed
+    # Service is working if container is running and port 12345 is open
     logging:
       driver: "json-file"
       options:

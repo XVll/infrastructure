@@ -26,26 +26,24 @@ http:
       tls:
         certResolver: cloudflare
 
-    # Grafana
+    # Grafana (Authentik disabled until we configure it)
     grafana:
       rule: "Host(`grafana.onurx.com`)"
       entryPoints:
         - websecure
       service: grafana
       middlewares:
-        - authentik
         - security-headers
       tls:
         certResolver: cloudflare
 
-    # Prometheus
+    # Prometheus (Authentik disabled until we configure it)
     prometheus:
       rule: "Host(`prometheus.onurx.com`)"
       entryPoints:
         - websecure
       service: prometheus
       middlewares:
-        - authentik
         - security-headers
       tls:
         certResolver: cloudflare
@@ -57,7 +55,6 @@ http:
         - websecure
       service: loki
       middlewares:
-        - authentik
         - security-headers
       tls:
         certResolver: cloudflare
@@ -69,7 +66,6 @@ http:
         - websecure
       service: alloy
       middlewares:
-        - authentik
         - security-headers
       tls:
         certResolver: cloudflare

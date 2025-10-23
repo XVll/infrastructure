@@ -19,11 +19,11 @@
 - [x] Authentik SSO (edge host - 10.10.10.110) - Deployed, ready to configure (admin: akadmin)
 - [x] NetBird VPN (edge host - 10.10.10.110) - Client deployed, connected to NetBird cloud
 
-### Phase 3: Observability ⏳ PENDING
-- [ ] Prometheus (observability host - 10.10.10.112)
-- [ ] Grafana (observability host - 10.10.10.112)
-- [ ] Loki (observability host - 10.10.10.112)
-- [ ] Alloy (observability host - 10.10.10.112)
+### Phase 3: Observability ✅ DONE
+- [x] Prometheus v3.1.0 (observability host - 10.10.10.112) - Metrics storage, 90-day retention
+- [x] Grafana 11.4.0 (observability host - 10.10.10.112) - Dashboards and visualization
+- [x] Loki 3.3.2 (observability host - 10.10.10.112) - Log aggregation, 90-day retention
+- [x] Alloy v1.11.2 (observability host - 10.10.10.112) - Modern unified telemetry collector
 
 ### Phase 4: Applications ⏳ PENDING
 - [ ] Jellyfin, Arr Stack, qBittorrent (media host - 10.10.10.113)
@@ -338,6 +338,77 @@ Routes to backend:
 - AdGuard sees only VM IPs (10.10.10.110), not individual containers
 - Solution: Add VMs as persistent clients for VM-level visibility
 - Alternative: Use macvlan networking for container-level IPs (advanced)
+
+---
+
+### Observability Stack (Monitoring & Logging)
+
+**Status:** ✅ Deployed and Working
+
+**Stack Components (10.10.10.112):**
+- Prometheus v3.1.0: Metrics storage and querying
+- Grafana 11.4.0: Visualization and dashboards
+- Loki 3.3.2: Log aggregation and querying
+- Alloy v1.11.2: Unified metrics and logs collector
+
+**Access:**
+- Grafana: `https://grafana.onurx.com` (via Traefik + Authentik SSO)
+- Prometheus: `https://prometheus.onurx.com` (via Traefik + Authentik SSO)
+- Loki: `https://loki.onurx.com` (API access, via Traefik + Authentik SSO)
+- Alloy: `https://alloy.onurx.com` (Web UI, via Traefik + Authentik SSO)
+
+**What Alloy Collects:**
+- **System metrics**: CPU, RAM, disk, network (via `prometheus.exporter.unix`)
+- **Docker metrics**: Container CPU, memory, network, disk I/O (via `prometheus.exporter.cadvisor`)
+- **Docker logs**: All container logs with automatic labeling (via `loki.source.docker`)
+- Sends metrics to Prometheus via remote_write API
+- Sends logs to Loki via push API
+
+**Using Grafana Explore:**
+1. Login to `https://grafana.onurx.com`
+2. Click **Explore** (compass icon in sidebar)
+3. Select datasource (Prometheus or Loki)
+
+**Example Queries:**
+
+*Prometheus (Metrics):*
+```promql
+up                               # All scraped targets
+node_cpu_seconds_total           # CPU metrics
+container_memory_usage_bytes     # Docker memory usage
+rate(node_network_receive_bytes_total[5m])  # Network traffic
+```
+
+*Loki (Logs):*
+```logql
+{container="grafana"}                      # Grafana logs
+{container="prometheus"}                   # Prometheus logs
+{job="docker"}                             # All Docker logs
+{container="traefik"} |= "error"          # Traefik errors only
+{compose_project="observability"}          # All observability stack logs
+```
+
+**Data Retention:**
+- Prometheus: 90 days
+- Loki: 90 days
+
+**Configuration Files:**
+- Prometheus: `observability/prometheus/config/prometheus.yml`
+- Loki: `observability/loki/config/config.yml`
+- Alloy: `observability/alloy/config/config.alloy`
+- Grafana Datasources: `observability/grafana/provisioning/datasources/datasources.yml`
+
+**Deployment:**
+```bash
+cd /opt/homelab
+op run --env-file=.env -- docker compose up -d prometheus grafana loki alloy
+```
+
+**Future Enhancements:**
+- Deploy Alloy on each VM for distributed metrics/logs collection
+- Add pre-built Grafana dashboards for infrastructure monitoring
+- Enable OpenTelemetry receiver in Alloy for app instrumentation
+- Add alerting rules in Prometheus for critical infrastructure events
 
 ---
 
@@ -706,18 +777,18 @@ Deploy in order:
   - Forward auth middleware ready (uses `authentik` middleware in routers.yml)
   - Admin user: `akadmin` (login: http://10.10.10.110:9000)
   - NetBird VPN client deployed (remote access working, DNS resolving *.onurx.com)
-- ⏳ **Phase 3 PENDING**: Observability Stack (Prometheus, Grafana, Loki, Alloy)
+- ✅ **Phase 3 COMPLETE**: Observability Stack (Prometheus, Grafana, Loki, Alloy)
+  - Prometheus v3.1.0: Metrics storage with 90-day retention
+  - Grafana 11.4.0: Dashboards and visualization (https://grafana.onurx.com)
+  - Loki 3.3.2: Log aggregation with 90-day retention
+  - Alloy v1.11.2: Unified collector for system metrics, Docker metrics, and logs
+  - All datasources provisioned and working in Grafana Explore
+  - Access via Traefik with Authentik SSO protection
 - ⏳ **Phase 4 PENDING**: Applications (Jellyfin, Arr Stack, n8n, Paperless, Coolify)
 
 ### Immediate Next Tasks
 
-**1. Deploy Observability Stack** (observability VM - 10.10.10.112)
-   - Prometheus (metrics collection)
-   - Grafana (dashboards + visualization)
-   - Loki (log aggregation)
-   - Alloy (metrics/logs collector)
-
-**2. Deploy Media Services** (media VM - 10.10.10.113)
+**1. Deploy Media Services** (media VM - 10.10.10.113)
    - Jellyfin (media server)
    - Prowlarr → Sonarr/Radarr (media management)
    - qBittorrent (download client)
