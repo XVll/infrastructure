@@ -352,10 +352,12 @@ Routes to backend:
 - Alloy v1.11.2: Unified metrics and logs collector
 
 **Access:**
-- Grafana: `https://grafana.onurx.com` (via Traefik + Authentik SSO)
-- Prometheus: `https://prometheus.onurx.com` (via Traefik + Authentik SSO)
-- Loki: `https://loki.onurx.com` (API access, via Traefik + Authentik SSO)
-- Alloy: `https://alloy.onurx.com` (Web UI, via Traefik + Authentik SSO)
+- Grafana: `https://grafana.onurx.com` (Web UI - via Traefik with SSL)
+- Prometheus: `https://prometheus.onurx.com` (Web UI - via Traefik with SSL)
+- Loki: `https://loki.onurx.com` (API only - no web UI, access logs via Grafana Explore)
+- Alloy: `https://alloy.onurx.com` (Web UI - via Traefik with SSL)
+
+**Note:** Authentik SSO middleware temporarily removed from observability services until applications are configured in Authentik. Services currently accessible without authentication.
 
 **What Alloy Collects:**
 - **System metrics**: CPU, RAM, disk, network (via `prometheus.exporter.unix`)
@@ -365,9 +367,11 @@ Routes to backend:
 - Sends logs to Loki via push API
 
 **Using Grafana Explore:**
+**IMPORTANT:** Loki has no web UI! Access logs only through Grafana Explore.
+
 1. Login to `https://grafana.onurx.com`
 2. Click **Explore** (compass icon in sidebar)
-3. Select datasource (Prometheus or Loki)
+3. Select datasource (Prometheus for metrics, Loki for logs)
 
 **Example Queries:**
 
@@ -778,12 +782,13 @@ Deploy in order:
   - Admin user: `akadmin` (login: http://10.10.10.110:9000)
   - NetBird VPN client deployed (remote access working, DNS resolving *.onurx.com)
 - ✅ **Phase 3 COMPLETE**: Observability Stack (Prometheus, Grafana, Loki, Alloy)
-  - Prometheus v3.1.0: Metrics storage with 90-day retention
+  - Prometheus v3.1.0: Metrics storage with 90-day retention (https://prometheus.onurx.com)
   - Grafana 11.4.0: Dashboards and visualization (https://grafana.onurx.com)
-  - Loki 3.3.2: Log aggregation with 90-day retention
-  - Alloy v1.11.2: Unified collector for system metrics, Docker metrics, and logs
+  - Loki 3.3.2: Log aggregation with 90-day retention (API only, no web UI)
+  - Alloy v1.11.2: Unified collector for system metrics, Docker metrics, and logs (https://alloy.onurx.com)
   - All datasources provisioned and working in Grafana Explore
-  - Access via Traefik with Authentik SSO protection
+  - All services accessible via Traefik with valid Let's Encrypt SSL certificates
+  - Authentik SSO middleware temporarily removed (will be re-enabled after configuring applications)
 - ⏳ **Phase 4 PENDING**: Applications (Jellyfin, Arr Stack, n8n, Paperless, Coolify)
 
 ### Immediate Next Tasks
@@ -795,8 +800,14 @@ Deploy in order:
    - n8n (workflow automation)
    - Paperless (document management)
 
-**3. Deploy Coolify** (coolify VM - 10.10.10.114)
+**2. Deploy Coolify** (coolify VM - 10.10.10.114)
    - Self-hosted PaaS platform
+
+**3. Configure Authentik Applications**
+   - Create applications in Authentik for: Grafana, Prometheus, Loki, Alloy
+   - Create applications for media services: Jellyfin, Sonarr, Radarr, Prowlarr, qBittorrent, n8n, Paperless
+   - Re-enable `authentik` middleware in `routers.yml` for protected services
+   - Test forward authentication works correctly
 
 **4. Cutover from Old Infrastructure**
    - Update DNS to point to new infrastructure
@@ -813,4 +824,4 @@ Deploy in order:
 
 ---
 
-**Last Updated:** 2025-10-23
+**Last Updated:** 2025-10-23 - Phase 3 (Observability Stack) verified complete and working
