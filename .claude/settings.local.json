@@ -24,7 +24,12 @@
       "WebFetch(domain:docs.netbird.io)",
       "WebFetch(domain:www.netdata.cloud)",
       "WebFetch(domain:grafana.com)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(curl:*)",
+      "WebFetch(domain:learn.netdata.cloud)",
+      "WebFetch(domain:graylog.org)",
+      "WebFetch(domain:go2docs.graylog.org)",
+      "WebFetch(domain:hub.docker.com)"
     ],
     "deny": [],
     "ask": []
