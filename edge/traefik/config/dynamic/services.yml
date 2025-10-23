@@ -21,58 +21,73 @@ http:
         servers:
           - url: "http://10.10.10.112:3000"
 
-    # VM 4: Media Apps (10.10.10.13)
+    prometheus:
+      loadBalancer:
+        servers:
+          - url: "http://10.10.10.112:9090"
+
+    loki:
+      loadBalancer:
+        servers:
+          - url: "http://10.10.10.112:3100"
+
+    alloy:
+      loadBalancer:
+        servers:
+          - url: "http://10.10.10.112:12345"
+
+    # VM 4: Media Apps (10.10.10.113)
     sonarr:
       loadBalancer:
         servers:
-          - url: "http://10.10.10.13:8989"
+          - url: "http://10.10.10.113:8989"
 
     radarr:
       loadBalancer:
         servers:
-          - url: "http://10.10.10.13:7878"
+          - url: "http://10.10.10.113:7878"
 
     prowlarr:
       loadBalancer:
         servers:
-          - url: "http://10.10.10.13:9696"
+          - url: "http://10.10.10.113:9696"
 
     jellyfin:
       loadBalancer:
         servers:
-          - url: "http://10.10.10.13:8096"
+          - url: "http://10.10.10.113:8096"
 
     qbittorrent:
       loadBalancer:
         servers:
-          - url: "http://10.10.10.13:8080"
+          - url: "http://10.10.10.113:8080"
 
     n8n:
       loadBalancer:
         servers:
-          - url: "http://10.10.10.13:5678"
+          - url: "http://10.10.10.113:5678"
 
     paperless:
       loadBalancer:
         servers:
-          - url: "http://10.10.10.13:8000"
+          - url: "http://10.10.10.113:8000"
 
-    # VM 5: Coolify (10.10.10.14)
+    # VM 5: Coolify (10.10.10.114)
     coolify:
       loadBalancer:
         servers:
-          - url: "http://10.10.10.14:8000"
+          - url: "http://10.10.10.114:8000"
 
-    # VM 2: MinIO (10.10.10.11)
+    # VM 2: Database Host (10.10.10.111)
     minio-console:
       loadBalancer:
         servers:
-          - url: "http://10.10.10.11:9001"
+          - url: "http://10.10.10.111:9001"
 
     minio-api:
       loadBalancer:
         servers:
-          - url: "http://10.10.10.11:9000"
+          - url: "http://10.10.10.111:9000"
 
   # Transports - Connection Settings for Backend Servers
   serversTransports:

@@ -1,4 +1,12 @@
-# Prometheus Configuration
+# ============================================================================
+# PROMETHEUS CONFIGURATION - Modern Alloy-based Setup
+# ============================================================================
+# All system and Docker metrics are collected by Alloy and sent via remote_write
+# Prometheus scrapes only:
+# 1. Services that expose Prometheus metrics directly (Traefik, MinIO, etc.)
+# 2. Alloy's own internal metrics
+# 3. Observability stack components (Grafana, Loki, Prometheus itself)
+# ============================================================================
 
 global:
   scrape_interval: 15s
@@ -19,15 +27,23 @@ global:
 rule_files:
   - '/etc/prometheus/rules/*.yml'
 
-# Scrape configurations
+# ============================================================================
+# SCRAPE CONFIGURATIONS
+# ============================================================================
+
 scrape_configs:
+  # --------------------------------------------------------------------------
+  # Observability Stack (local services)
+  # --------------------------------------------------------------------------
+
   # Prometheus itself
   - job_name: 'prometheus'
     static_configs:
       - targets: ['localhost:9090']
         labels:
           instance: 'prometheus'
-          vm: 'vm3-observability'
+          vm: 'observability'
+          service: 'observability'
 
   # Grafana
   - job_name: 'grafana'
@@ -35,7 +51,8 @@ scrape_configs:
       - targets: ['grafana:3000']
         labels:
           instance: 'grafana'
-          vm: 'vm3-observability'
+          vm: 'observability'
+          service: 'observability'
 
   # Loki
   - job_name: 'loki'
@@ -43,155 +60,113 @@ scrape_configs:
       - targets: ['loki:3100']
         labels:
           instance: 'loki'
-          vm: 'vm3-observability'
+          vm: 'observability'
+          service: 'observability'
 
-  # Alloy
+  # Alloy - internal metrics only (system/Docker metrics come via remote_write)
   - job_name: 'alloy'
     static_configs:
       - targets: ['alloy:12345']
         labels:
           instance: 'alloy'
-          vm: 'vm3-observability'
+          vm: 'observability'
+          service: 'observability'
 
-  # Node Exporter - VM3
-  - job_name: 'node-exporter-vm3'
-    static_configs:
-      - targets: ['node-exporter:9100']
-        labels:
-          instance: 'vm3-observability'
-          vm: 'vm3-observability'
+  # --------------------------------------------------------------------------
+  # Edge Services (VM: 10.10.10.110)
+  # --------------------------------------------------------------------------
 
-  # cAdvisor - VM3 containers
-  - job_name: 'cadvisor-vm3'
-    static_configs:
-      - targets: ['cadvisor:8080']
-        labels:
-          instance: 'vm3-observability'
-          vm: 'vm3-observability'
-
-  # VM 1: Edge Services
+  # Traefik - exposes metrics directly
   - job_name: 'traefik'
     static_configs:
-      - targets: ['10.10.10.10:8080']
+      - targets: ['10.10.10.110:8080']
         labels:
           instance: 'traefik'
-          vm: 'vm1-edge-services'
+          vm: 'edge'
+          service: 'proxy'
 
-  - job_name: 'node-exporter-vm1'
-    static_configs:
-      - targets: ['10.10.10.10:9100']
-        labels:
-          instance: 'vm1-edge-services'
-          vm: 'vm1-edge-services'
+  # --------------------------------------------------------------------------
+  # Database Services (VM: 10.10.10.111)
+  # --------------------------------------------------------------------------
 
-  # VM 2: Data Tier
-  - job_name: 'postgres-exporter'
-    static_configs:
-      - targets: ['10.10.10.11:9187']
-        labels:
-          instance: 'postgres'
-          vm: 'vm2-data-tier'
-
-  - job_name: 'mongodb-exporter'
-    static_configs:
-      - targets: ['10.10.10.11:9216']
-        labels:
-          instance: 'mongodb'
-          vm: 'vm2-data-tier'
-
-  - job_name: 'redis-exporter'
-    static_configs:
-      - targets: ['10.10.10.11:9121']
-        labels:
-          instance: 'redis'
-          vm: 'vm2-data-tier'
-
+  # MinIO - exposes metrics directly
   - job_name: 'minio'
     metrics_path: /minio/v2/metrics/cluster
-    scheme: https
-    tls_config:
-      insecure_skip_verify: true
+    scheme: http
     static_configs:
-      - targets: ['10.10.10.11:9000']
+      - targets: ['10.10.10.111:9000']
         labels:
           instance: 'minio'
-          vm: 'vm2-data-tier'
+          vm: 'db'
+          service: 'storage'
 
-  - job_name: 'node-exporter-vm2'
-    static_configs:
-      - targets: ['10.10.10.11:9100']
-        labels:
-          instance: 'vm2-data-tier'
-          vm: 'vm2-data-tier'
+  # Note: PostgreSQL, MongoDB, Redis metrics would need separate exporters
+  # For now, rely on Alloy to collect Docker container metrics
+  # Can add dedicated exporters later if needed
 
-  # VM 4: Media & Automation
+  # --------------------------------------------------------------------------
+  # Media Services (VM: 10.10.10.113) - Once deployed
+  # --------------------------------------------------------------------------
+
+  # Sonarr
   - job_name: 'sonarr'
     static_configs:
-      - targets: ['10.10.10.13:9897']
+      - targets: ['10.10.10.113:8989']
         labels:
           instance: 'sonarr'
-          vm: 'vm4-media-automation'
+          vm: 'media'
+          service: 'media'
 
+  # Radarr
   - job_name: 'radarr'
     static_configs:
-      - targets: ['10.10.10.13:9898']
+      - targets: ['10.10.10.113:7878']
         labels:
           instance: 'radarr'
-          vm: 'vm4-media-automation'
+          vm: 'media'
+          service: 'media'
 
+  # Prowlarr
   - job_name: 'prowlarr'
     static_configs:
-      - targets: ['10.10.10.13:9899']
+      - targets: ['10.10.10.113:9696']
         labels:
           instance: 'prowlarr'
-          vm: 'vm4-media-automation'
+          vm: 'media'
+          service: 'media'
 
-  - job_name: 'node-exporter-vm4'
-    static_configs:
-      - targets: ['10.10.10.13:9100']
-        labels:
-          instance: 'vm4-media-automation'
-          vm: 'vm4-media-automation'
+  # --------------------------------------------------------------------------
+  # Coolify (VM: 10.10.10.114) - Once deployed
+  # --------------------------------------------------------------------------
 
-  # VM 5: Coolify
+  # Coolify
   - job_name: 'coolify'
     static_configs:
-      - targets: ['10.10.10.14:9090']
+      - targets: ['10.10.10.114:8000']
         labels:
           instance: 'coolify'
-          vm: 'vm5-coolify'
+          vm: 'coolify'
+          service: 'paas'
 
-  - job_name: 'node-exporter-vm5'
-    static_configs:
-      - targets: ['10.10.10.14:9100']
-        labels:
-          instance: 'vm5-coolify'
-          vm: 'vm5-coolify'
-
-  # VM 6: NAS
-  - job_name: 'nas'
-    static_configs:
-      - targets: ['10.10.10.30:9100']
-        labels:
-          instance: 'xpenology-nas'
-          vm: 'vm6-nas'
-
-  # VM 7: Home Assistant
-  - job_name: 'home-assistant'
-    metrics_path: /api/prometheus
-    bearer_token: 'YOUR_HOME_ASSISTANT_TOKEN'
-    static_configs:
-      - targets: ['10.10.30.10:8123']
-        labels:
-          instance: 'home-assistant'
-          vm: 'vm7-home-assistant'
-
-  # UniFi Controller (if available)
-  - job_name: 'unifi'
-    static_configs:
-      - targets: ['unifi.homelab.local:9130']
-        labels:
-          instance: 'unifi-controller'
-          device: 'network'
-
-  # Additional exporters can be added here
+# ============================================================================
+# NOTES FOR FUTURE EXPANSION
+# ============================================================================
+#
+# To monitor additional VMs:
+# 1. Deploy Alloy on each VM (same config, update hostname)
+# 2. Alloy automatically sends metrics via remote_write to this Prometheus
+# 3. Add Alloy scrape target here (optional, for Alloy's own metrics)
+#
+# Example for edge VM:
+#   - job_name: 'alloy-edge'
+#     static_configs:
+#       - targets: ['10.10.10.110:12345']
+#         labels:
+#           instance: 'alloy'
+#           vm: 'edge'
+#
+# For database-specific metrics, add exporters:
+# - PostgreSQL Exporter: postgres_exporter
+# - MongoDB Exporter: mongodb_exporter
+# - Redis Exporter: redis_exporter
+# ============================================================================
