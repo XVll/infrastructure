@@ -47,7 +47,6 @@ services:
     image: prom/prometheus:v3.1.0  # Latest stable version (2025)
     container_name: prometheus
     restart: unless-stopped
-    user: "nobody"  # Run as nobody for security
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
@@ -85,7 +84,6 @@ services:
     image: grafana/grafana:11.4.0  # Latest stable version (2025)
     container_name: grafana
     restart: unless-stopped
-    user: "472"  # grafana user
     environment:
       - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER}
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
@@ -128,7 +126,6 @@ services:
     image: grafana/loki:3.3.2  # Latest stable version (2025)
     container_name: loki
     restart: unless-stopped
-    user: "10001"  # loki user
     command: -config.file=/etc/loki/config.yml
     ports:
       - "10.10.10.112:3100:3100"
@@ -166,8 +163,9 @@ services:
       - --storage.path=/var/lib/alloy/data
     ports:
       - "10.10.10.112:12345:12345"  # Alloy web UI
-      - "10.10.10.112:4317:4317"    # OTLP gRPC (for app instrumentation)
-      - "10.10.10.112:4318:4318"    # OTLP HTTP (for app instrumentation)
+      # OTLP ports (uncomment when enabling OpenTelemetry receiver in config.alloy)
+      # - "10.10.10.112:4317:4317"    # OTLP gRPC (for app instrumentation)
+      # - "10.10.10.112:4318:4318"    # OTLP HTTP (for app instrumentation)
     volumes:
       - ./alloy/config/config.alloy:/etc/alloy/config.alloy:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro  # Docker metrics + logs

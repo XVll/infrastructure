@@ -207,19 +207,28 @@ loki.write "loki" {
 // ============================================================================
 // OPTIONAL: OpenTelemetry Receiver (for app instrumentation)
 // ============================================================================
-
-otelcol.receiver.otlp "default" {
-  grpc {
-    endpoint = "0.0.0.0:4317"
-  }
-
-  http {
-    endpoint = "0.0.0.0:4318"
-  }
-
-  output {
-    metrics = [prometheus.remote_write.prometheus.receiver]
-    logs    = [loki.write.loki.receiver]
-    // traces can be added later when Tempo is deployed
-  }
-}
+// Uncomment when you want to instrument your web apps with OpenTelemetry
+// Requires otelcol.exporter to convert OTLP to Prometheus/Loki formats
+//
+// otelcol.receiver.otlp "default" {
+//   grpc {
+//     endpoint = "0.0.0.0:4317"
+//   }
+//
+//   http {
+//     endpoint = "0.0.0.0:4318"
+//   }
+//
+//   output {
+//     metrics = [otelcol.exporter.prometheus.default.input]
+//     logs    = [otelcol.exporter.loki.default.input]
+//   }
+// }
+//
+// otelcol.exporter.prometheus "default" {
+//   forward_to = [prometheus.remote_write.prometheus.receiver]
+// }
+//
+// otelcol.exporter.loki "default" {
+//   forward_to = [loki.write.loki.receiver]
+// }
