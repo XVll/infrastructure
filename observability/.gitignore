@@ -15,10 +15,6 @@ data/alloy/
 # Uptime Kuma data
 data/uptime-kuma/
 
-# Graylog data
-graylog/data/
-graylog-datanode/data/
-
 # Logs
 *.log
 logs/
