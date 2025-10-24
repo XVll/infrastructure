@@ -30,6 +30,28 @@ services:
         max-file: "3"
 
   # ============================================================================
+  # ALLOY - Log Shipper (sends Docker logs to Loki on observability VM)
+  # ============================================================================
+
+  alloy:
+    image: grafana/alloy:latest
+    container_name: alloy
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./alloy/config:/etc/alloy
+    command: run --server.http.listen-addr=0.0.0.0:12345 --storage.path=/var/lib/alloy/data /etc/alloy/config.alloy
+    ports:
+      - "10.10.10.111:12345:12345"  # Alloy UI
+    networks:
+      - data_net
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ============================================================================
   # 1. MONGODB - Document Database
   # ============================================================================
   # Deploy first - used by Komodo, other apps

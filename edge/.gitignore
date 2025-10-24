@@ -1,12 +1,9 @@
-# Traefik data
-data/traefik/acme.json
-data/traefik/logs/
-
-# AdGuard Home data
-data/adguard/
-
-# Authentik data
-data/authentik/
+# Runtime data directories
+traefik/data/
+adguard/data/
+authentik/data/
+netbird/data/
+alloy/data/
 
 # Logs
 *.log

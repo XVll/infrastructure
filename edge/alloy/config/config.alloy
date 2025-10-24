@@ -1,0 +1,107 @@
+// ============================================================================
+// GRAFANA ALLOY - REMOTE LOG SHIPPER (EDGE VM)
+// Lightweight config: Docker logs only → sends to central Loki
+// ============================================================================
+
+// ============================================================================
+// LOGS: Docker Container Discovery
+// ============================================================================
+
+discovery.docker "containers" {
+  host = "unix:///var/run/docker.sock"
+}
+
+// ============================================================================
+// LOGS: Docker Container Logs Collection
+// ============================================================================
+
+loki.source.docker "containers" {
+  host       = "unix:///var/run/docker.sock"
+  targets    = discovery.docker.containers.targets
+  forward_to = [loki.process.add_labels.receiver]
+
+  // Relabeling to extract useful labels
+  relabel_rules = discovery.relabel.docker_labels.rules
+}
+
+// Relabeling rules for Docker containers
+discovery.relabel "docker_labels" {
+  targets = discovery.docker.containers.targets
+
+  // Extract container name
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(.*)"
+    target_label  = "container"
+  }
+
+  // Extract container ID (short)
+  rule {
+    source_labels = ["__meta_docker_container_id"]
+    regex         = "(.{12}).*"
+    target_label  = "container_id"
+  }
+
+  // Extract image name
+  rule {
+    source_labels = ["__meta_docker_container_image"]
+    target_label  = "image"
+  }
+
+  // Extract compose project
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_project"]
+    target_label  = "compose_project"
+  }
+
+  // Extract compose service
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+    target_label  = "compose_service"
+  }
+}
+
+// ============================================================================
+// LOGS: Processing and Labeling
+// ============================================================================
+
+loki.process "add_labels" {
+  forward_to = [loki.write.loki.receiver]
+
+  // Parse Docker logs
+  stage.docker {}
+
+  // Add static labels (IMPORTANT: identifies this VM)
+  stage.static_labels {
+    values = {
+      host = "edge-vm",
+      cluster = "homelab",
+    }
+  }
+
+  // Extract log level (error, warn, info, debug)
+  stage.regex {
+    expression = "(?i)level=(?P<level>\\w+)"
+  }
+
+  stage.labels {
+    values = {
+      level = "",
+    }
+  }
+}
+
+// ============================================================================
+// LOGS: Loki Write Endpoint (CENTRAL LOKI on observability VM)
+// ============================================================================
+
+loki.write "loki" {
+  endpoint {
+    url = "http://10.10.10.112:3100/loki/api/v1/push"
+  }
+
+  // External labels added to all logs
+  external_labels = {
+    cluster = "homelab",
+  }
+}
