@@ -237,8 +237,8 @@ services:
     environment:
       LISTEN: /beszel_socket/beszel.sock
       HUB_URL: http://10.10.10.112:8090
-      KEY: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGr4Gvuz2fO16pKEWrNulN7Q4NzWQDTb0FBnH9O0JDl2
-      TOKEN: 56320dea-b9de-4d97-b9d3-cced73a8730a
+      KEY: ${BESZEL_KEY}
+      TOKEN: ${BESZEL_TOKEN}
     logging:
       driver: "json-file"
       options:
