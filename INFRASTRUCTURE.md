@@ -28,11 +28,14 @@
 - [x] Alloy (edge host - 10.10.10.110) - Logs-only shipper, sends to central Loki
 - [x] Alloy (media host - 10.10.10.113) - Logs-only shipper, sends to central Loki
 - [x] **Centralized Logging** - All Docker logs from all VMs flow to Loki, queryable in Grafana
+- [x] Beszel Hub (observability host - 10.10.10.112:8090) - Lightweight monitoring dashboard
+- [x] Beszel Agent (all 4 VMs) - System + Docker metrics, auto-registered with universal token
+- [x] **Quick Monitoring** - Real-time CPU, memory, disk, network, Docker stats for all VMs
 
-### Phase 4: Applications ⏳ PENDING
+### Phase 4: Applications ⏳ IN PROGRESS
 - [ ] Jellyfin, Arr Stack, qBittorrent (media host - 10.10.10.113)
 - [ ] n8n, Paperless (media host - 10.10.10.113)
-- [ ] Coolify (coolify host - 10.10.10.114)
+- [ ] Gitea + Dokploy (dev host - 10.10.10.114)
 
 ---
 
@@ -186,6 +189,51 @@ To add system/Docker metrics from remote VMs, just update Alloy config (add ~30 
 
 ---
 
+### Beszel (Quick Monitoring Dashboard)
+
+**Status:** ✅ Deployed and Working
+
+**Purpose:** Lightweight, easy-to-use monitoring dashboard for quick infrastructure health checks
+
+**Access:** `http://10.10.10.112:8090`
+
+**Architecture:**
+```
+Beszel Hub (observability VM - port 8090)
+    ↑ (public key auth + universal token)
+    ├─ Agent (observability VM - Unix socket)
+    ├─ Agent (db VM - 10.10.10.111:45876)
+    ├─ Agent (edge VM - 10.10.10.110:45876)
+    └─ Agent (media VM - 10.10.10.113:45876)
+```
+
+**What It Shows:**
+- Real-time CPU, memory, disk, network usage per VM
+- Docker container stats (CPU, memory per container)
+- Historical graphs (stored in SQLite)
+- Alert thresholds (configurable)
+- All 4 VMs in one dashboard
+
+**Agent Deployment:**
+Agents use **universal token** for auto-registration (no manual system creation needed).
+
+**Secrets Management:**
+- KEY and TOKEN stored in 1Password: `op://Server/beszel/key` and `op://Server/beszel/token`
+- Deploy agents: `op run --env-file=.env -- docker compose up -d beszel-agent`
+
+**Why Use Beszel vs Grafana:**
+- **Beszel**: Quick daily checks, simple UI, zero config, instant overview
+- **Grafana**: Deep analysis, custom dashboards, log correlation, advanced queries
+
+Both run side-by-side - use Beszel for "Is everything okay?" and Grafana for "Why did this happen?"
+
+**Configuration:**
+- Universal token regenerates every 1 hour or on Hub restart
+- After first connection, agents use fingerprints for persistent identity
+- To rotate token: Generate new one in Hub admin panel → update 1Password → redeploy agents
+
+---
+
 ### AdGuard Home (DNS)
 
 **Status:** ✅ Deployed and Configured
@@ -209,7 +257,7 @@ Wildcard rewrite configured: `*.onurx.com` → `10.10.10.110`
 Covers all services:
 - auth, portainer, grafana, prometheus
 - sonarr, radarr, prowlarr, jellyfin, qbittorrent
-- n8n, paperless, coolify
+- n8n, paperless, gitea, dokploy
 - minio (console), s3 (API)
 
 **Persistent Clients (Optional):**
@@ -218,7 +266,7 @@ Add VM IPs for better visibility:
 - `10.10.10.111` → db-vm
 - `10.10.10.112` → observability-vm
 - `10.10.10.113` → media-vm
-- `10.10.10.114` → coolify-vm
+- `10.10.10.114` → dev-vm
 
 **Testing:**
 ```bash
@@ -338,7 +386,7 @@ docker compose logs -f authentik-worker
 
 Services using `authentik` middleware (configured in `routers.yml`):
 - grafana, sonarr, radarr, prowlarr, jellyfin
-- qbittorrent, n8n, paperless, coolify
+- qbittorrent, n8n, paperless, gitea, dokploy
 - minio console
 
 **Not protected:**
@@ -790,28 +838,46 @@ op read "op://Server/postgres/password"
 
 ## Service-Specific Notes
 
-### Coolify (PaaS)
+### Development Stack (Gitea + Dokploy)
 
-**Status:** Not deployed yet
+**VM:** dev (10.10.10.114)
 
-**Installation:**
+**Services:**
+- **Gitea** - Self-hosted Git + Container Registry + Gitea Actions (CI/CD)
+- **Dokploy** - Deployment platform with built-in Traefik
+
+**Status:** Configuration files created, ready to deploy
+
+**Gitea Access:** `http://10.10.10.114:3000` (HTTP), `10.10.10.114:222` (SSH)
+**Dokploy Access:** `http://10.10.10.114:3200` (after installation)
+
+**Deployment:**
 ```bash
-# SSH to coolify VM (10.10.10.114)
-curl -fsSL https://cdn.coollabs.io/coolify/install.sh | bash
+# SSH to dev VM (10.10.10.114)
+cd /opt/homelab
+
+# 1. Create PostgreSQL database first (on db host)
+docker exec -it postgres psql -U postgres
+CREATE DATABASE gitea;
+CREATE USER gitea WITH PASSWORD 'password';
+GRANT ALL PRIVILEGES ON DATABASE gitea TO gitea;
+\q
+
+# 2. Deploy Gitea
+op run --env-file=.env -- docker compose up -d gitea
+
+# 3. Install Dokploy (separate installer)
+curl -sSL https://dokploy.com/install.sh | sh
 ```
 
-**Access:** `http://10.10.10.114:8000` or `https://coolify.onurx.com`
+**Features:**
+- Git repository hosting (private repos)
+- GitHub Actions-compatible CI/CD (Gitea Actions)
+- OCI container registry
+- Repository mirroring (GitHub ↔ Gitea)
+- Automated deployments via Dokploy
 
-**Use external databases:**
-```
-DATABASE_URL=postgresql://app:pass@10.10.10.111:5432/app
-REDIS_URL=redis://:pass@10.10.10.111:6379
-MONGODB_URL=mongodb://app:pass@10.10.10.111:27017/app
-```
-
-**Deployment:** git push → automatic build & deploy
-
-**Not managed by docker-compose** - uses own installer
+**See:** `dev/README.md` for full setup instructions
 
 ---
 
@@ -823,7 +889,7 @@ MONGODB_URL=mongodb://app:pass@10.10.10.111:27017/app
 | observability | 10.10.10.112 | Portainer, Prometheus, Grafana, Loki, Alloy |
 | edge | 10.10.10.110 | Traefik, AdGuard, Authentik, NetBird |
 | media | 10.10.10.113 | Jellyfin, Arr Stack, n8n, Paperless, qBittorrent |
-| coolify | 10.10.10.114 | Coolify PaaS |
+| dev | 10.10.10.114 | Gitea, Dokploy |
 
 **Network:** VLAN 10 (10.10.10.0/24)
 **Gateway:** 10.10.10.1
@@ -880,7 +946,7 @@ Deploy in order:
   - All datasources provisioned and working in Grafana Explore
   - All services accessible via Traefik with valid Let's Encrypt SSL certificates
   - Authentik SSO middleware temporarily removed (will be re-enabled after configuring applications)
-- ⏳ **Phase 4 PENDING**: Applications (Jellyfin, Arr Stack, n8n, Paperless, Coolify)
+- ⏳ **Phase 4 IN PROGRESS**: Applications (Jellyfin, Arr Stack, n8n, Paperless) + Development Stack (Gitea, Dokploy)
 
 ### Immediate Next Tasks
 
@@ -891,7 +957,9 @@ Deploy in order:
    - n8n (workflow automation)
    - Paperless (document management)
 
-**2. Deploy Coolify** (coolify VM - 10.10.10.114)
+**2. Deploy Development Stack** (dev VM - 10.10.10.114)
+- Gitea (Git + Container Registry + CI/CD)
+- Dokploy (Deployment platform)
    - Self-hosted PaaS platform
 
 **3. Configure Authentik Applications**

@@ -1,0 +1,129 @@
+# ============================================================================
+# DEV VM (10.10.10.114) - Development Stack
+# ============================================================================
+# Gitea: Git hosting + Container Registry + CI/CD (Gitea Actions)
+# act_runner: Executes Gitea Actions workflows
+# Dokploy: Deployment platform with built-in Traefik
+# ============================================================================
+
+services:
+  # ==========================================================================
+  # GITEA - Self-hosted Git with Actions & Container Registry
+  # ==========================================================================
+  gitea:
+    image: gitea/gitea:1.24
+    container_name: gitea
+    restart: unless-stopped
+    environment:
+      # User/Group
+      - USER_UID=1000
+      - USER_GID=1000
+
+      # Database (PostgreSQL on db host)
+      - GITEA__database__DB_TYPE=postgres
+      - GITEA__database__HOST=10.10.10.111:5432
+      - GITEA__database__NAME=gitea
+      - GITEA__database__USER=gitea
+      - GITEA__database__PASSWD=${GITEA_DB_PASSWORD}
+
+      # Server settings
+      - GITEA__server__DOMAIN=git.${DOMAIN}
+      - GITEA__server__SSH_DOMAIN=git.${DOMAIN}
+      - GITEA__server__ROOT_URL=https://git.${DOMAIN}
+      - GITEA__server__HTTP_PORT=3000
+      - GITEA__server__SSH_PORT=222
+
+      # Security
+      - GITEA__security__INSTALL_LOCK=true
+      - GITEA__security__SECRET_KEY=${GITEA_SECRET_KEY}
+      - GITEA__security__INTERNAL_TOKEN=${GITEA_INTERNAL_TOKEN}
+
+      # Actions (CI/CD)
+      - GITEA__actions__ENABLED=true
+
+      # Package/Container Registry
+      - GITEA__packages__ENABLED=true
+
+      # Service settings
+      - GITEA__service__DISABLE_REGISTRATION=true
+      - GITEA__service__REQUIRE_SIGNIN_VIEW=false
+
+    ports:
+      - "10.10.10.114:3000:3000"  # HTTP
+      - "10.10.10.114:222:22"      # SSH
+
+    volumes:
+      - ./gitea/data:/data
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+
+    networks:
+      - dev_net
+
+    depends_on:
+      - postgres-check
+
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # ==========================================================================
+  # PostgreSQL Health Check (ensures db is ready)
+  # ==========================================================================
+  postgres-check:
+    image: postgres:16-alpine
+    container_name: postgres-check
+    command: >
+      sh -c "until pg_isready -h 10.10.10.111 -U gitea; do
+        echo 'Waiting for PostgreSQL...';
+        sleep 2;
+      done;
+      echo 'PostgreSQL is ready!'"
+    environment:
+      - PGPASSWORD=${GITEA_DB_PASSWORD}
+    networks:
+      - dev_net
+    restart: "no"
+
+  # ==========================================================================
+  # ACT RUNNER - Executes Gitea Actions workflows
+  # ==========================================================================
+  act-runner:
+    image: gitea/act_runner:latest
+    container_name: act-runner
+    restart: unless-stopped
+
+    volumes:
+      - ./act-runner/data:/data
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+
+    environment:
+      - GITEA_INSTANCE_URL=http://gitea:3000
+      - GITEA_RUNNER_REGISTRATION_TOKEN=${GITEA_RUNNER_TOKEN}
+      - GITEA_RUNNER_NAME=homelab-runner
+      - GITEA_RUNNER_LABELS=ubuntu-latest:docker://node:20-bookworm,ubuntu-22.04:docker://node:20-bookworm
+
+    networks:
+      - dev_net
+
+    depends_on:
+      gitea:
+        condition: service_healthy
+
+  # ==========================================================================
+  # DOKPLOY - Deployment Platform (Commented out - deploy separately)
+  # ==========================================================================
+  # Dokploy installation uses its own installer script
+  # Run: curl -sSL https://dokploy.com/install.sh | sh
+  # This will set up Dokploy with its own Traefik instance
+
+# ============================================================================
+# NETWORKS
+# ============================================================================
+networks:
+  dev_net:
+    driver: bridge
+    name: dev_net

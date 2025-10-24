@@ -1,0 +1,17 @@
+# Application data directories
+gitea/data/
+act-runner/data/
+dokploy/
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.swp
+*~
+
+# Secrets (if any get created locally)
+*.key
+*.pem

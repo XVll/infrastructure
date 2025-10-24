@@ -63,7 +63,7 @@ This is a homelab infrastructure repository for managing Docker-based services a
 | observability | 10.10.10.112 | `/opt/homelab` (→ `observability/`) | Portainer, Prometheus, Grafana, Loki |
 | edge | 10.10.10.110 | `/opt/homelab` (→ `edge/`) | Traefik, AdGuard, Authentik |
 | media | 10.10.10.113 | `/opt/homelab` (→ `media/`) | Jellyfin, Arr Stack, n8n, Paperless |
-| coolify | 10.10.10.114 | Custom install | Coolify PaaS |
+| dev | 10.10.10.114 | `/opt/homelab` (→ `dev/`) | Gitea, Dokploy |
 
 ### Deployment Strategy
 
@@ -71,7 +71,7 @@ Services are deployed progressively in dependency order:
 1. **Phase 1**: MongoDB, PostgreSQL, Redis, MinIO (databases) → Portainer (management UI)
 2. **Phase 2**: Traefik → AdGuard → Authentik
 3. **Phase 3**: Prometheus → Grafana → Loki → Alloy
-4. **Phase 4**: Media services, n8n, Paperless, Coolify
+4. **Phase 4**: Media services, n8n, Paperless, Development Stack (Gitea + Dokploy)
 
 ## Common Commands
 
@@ -291,7 +291,7 @@ infrastructure/
 │   ├── n8n/data/
 │   └── paperless/data/
 │
-└── coolify/
+└── dev/
     └── README.md
 ```
 
