@@ -29,7 +29,8 @@
       "WebFetch(domain:learn.netdata.cloud)",
       "WebFetch(domain:graylog.org)",
       "WebFetch(domain:go2docs.graylog.org)",
-      "WebFetch(domain:hub.docker.com)"
+      "WebFetch(domain:hub.docker.com)",
+      "Bash(tree:*)"
     ],
     "deny": [],
     "ask": []

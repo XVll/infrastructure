@@ -1,19 +1,11 @@
 # Environment variables (contains secrets)
 
-# Grafana data
-data/grafana/
-
-# Prometheus data
-data/prometheus/
-
-# Loki data
-data/loki/
-
-# Alloy data
-data/alloy/
-
-# Uptime Kuma data
-data/uptime-kuma/
+# Runtime data directories (created on VM)
+portainer/data/
+grafana/data/
+prometheus/data/
+loki/data/
+alloy/data/
 
 # Logs
 *.log
