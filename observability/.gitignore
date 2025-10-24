@@ -6,6 +6,8 @@ grafana/data/
 prometheus/data/
 loki/data/
 alloy/data/
+beszel/data/
+beszel/socket/
 
 # Logs
 *.log

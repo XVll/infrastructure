@@ -52,6 +52,31 @@ services:
         max-file: "3"
 
   # ============================================================================
+  # BESZEL AGENT - System Monitor (sends data to Hub on observability VM)
+  # ============================================================================
+  # Configure after deploying Hub (copy connection details from Hub web UI)
+
+  beszel-agent:
+    image: henrygd/beszel-agent:latest
+    container_name: beszel-agent
+    restart: unless-stopped
+    network_mode: host  # Required for network interface stats
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro  # Docker container stats
+    environment:
+      # These will be provided by Hub web UI after adding system
+      # Update these values after deploying Hub
+      LISTEN: ":45876"
+      HUB_URL: "http://10.10.10.112:8090"
+      # KEY: "paste_public_key_from_hub_here"
+      # TOKEN: "paste_token_from_hub_here"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ============================================================================
   # 1. TRAEFIK - Reverse Proxy & SSL Termination
   # ============================================================================
   # Deploy first - no dependencies
