@@ -22,8 +22,12 @@
 ### Phase 3: Observability ✅ DONE
 - [x] Prometheus v3.1.0 (observability host - 10.10.10.112) - Metrics storage, 90-day retention
 - [x] Grafana 11.4.0 (observability host - 10.10.10.112) - Dashboards and visualization
-- [x] Loki 3.3.2 (observability host - 10.10.10.112) - Log aggregation, 90-day retention
-- [x] Alloy v1.11.2 (observability host - 10.10.10.112) - Modern unified telemetry collector
+- [x] Loki 3.3.2 (observability host - 10.10.10.112) - Log aggregation, 90-day retention, filesystem storage
+- [x] Alloy v1.11.2 (observability host - 10.10.10.112) - Collects metrics + logs from observability VM
+- [x] Alloy (db host - 10.10.10.111) - Logs-only shipper, sends to central Loki
+- [x] Alloy (edge host - 10.10.10.110) - Logs-only shipper, sends to central Loki
+- [x] Alloy (media host - 10.10.10.113) - Logs-only shipper, sends to central Loki
+- [x] **Centralized Logging** - All Docker logs from all VMs flow to Loki, queryable in Grafana
 
 ### Phase 4: Applications ⏳ PENDING
 - [ ] Jellyfin, Arr Stack, qBittorrent (media host - 10.10.10.113)
@@ -114,6 +118,71 @@ edge/traefik/config/dynamic/
 **Dashboard:** `http://10.10.10.110:8080`
 
 **SSL Certs:** Cloudflare DNS-01 challenge, stored in `/data/acme.json`
+
+---
+
+### Centralized Logging (Loki + Alloy)
+
+**Status:** ✅ Deployed and Working
+
+**Architecture:**
+```
+All VMs (Docker containers)
+    ↓ (stdout/stderr logs)
+Alloy (on each VM)
+    ↓ (ships logs over network)
+Loki (observability VM - 10.10.10.112:3100)
+    ↓ (query interface)
+Grafana Explore
+```
+
+**What's Collected:**
+- ✅ All Docker container logs from all 4 VMs
+- ✅ Logs labeled by: host, container, image, compose_service, compose_project
+- ✅ Auto-extracts log level (error, warn, info, debug) when present
+
+**Storage:**
+- Location: `/opt/homelab/loki/data/` on observability VM
+- Retention: 90 days (auto-deleted after)
+- Type: Filesystem (TSDB v13 format)
+
+**Alloy Deployment:**
+- **observability VM**: Full config (metrics + logs for local containers)
+- **db/edge/media VMs**: Logs-only shipper (lightweight config)
+
+**Viewing Logs:**
+
+Access Grafana Explore: `http://10.10.10.112:3000/explore`
+
+**Common queries:**
+```logql
+# All logs from all VMs
+{cluster="homelab"}
+
+# Specific VM
+{host="db-vm"}
+
+# Specific container
+{container="mongodb"}
+
+# Errors only
+{level="error"}
+
+# Search pattern
+{cluster="homelab"} |~ "(?i)error|fail"
+
+# Live stream (click "Live" button)
+{host="edge-vm", container="traefik"}
+```
+
+**Pro Tips:**
+- Use **Live mode** for real-time log streaming (like `docker logs -f`)
+- **Split view** to watch multiple log sources side-by-side
+- **Exclude noise**: `{cluster="homelab"} != "health" != "ping"`
+- Logs persist for 90 days (unlike `docker logs` which rotates at 30MB)
+
+**Adding Metrics Later:**
+To add system/Docker metrics from remote VMs, just update Alloy config (add ~30 lines) and restart. No architecture changes needed.
 
 ---
 

@@ -30,7 +30,8 @@
       "WebFetch(domain:graylog.org)",
       "WebFetch(domain:go2docs.graylog.org)",
       "WebFetch(domain:hub.docker.com)",
-      "Bash(tree:*)"
+      "Bash(tree:*)",
+      "WebFetch(domain:beszel.dev)"
     ],
     "deny": [],
     "ask": []
