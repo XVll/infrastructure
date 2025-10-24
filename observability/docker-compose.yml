@@ -231,12 +231,14 @@ services:
     restart: unless-stopped
     network_mode: host  # Required for network interface stats
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro  # Docker container stats
+      - ./beszel/agent_data:/var/lib/beszel-agent  # Agent persistent data
       - ./beszel/socket:/beszel_socket  # Unix socket connection to Hub
+      - /var/run/docker.sock:/var/run/docker.sock:ro  # Docker container stats
     environment:
       # These will be provided by Hub web UI after adding system
       # Update these values after deploying Hub
       LISTEN: /beszel_socket/beszel.sock
+      HUB_URL: http://localhost:8090
       # KEY: "paste_public_key_from_hub_here"
       # TOKEN: "paste_token_from_hub_here"
     logging:

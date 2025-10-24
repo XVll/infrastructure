@@ -4,6 +4,7 @@ postgres/data/
 redis/data/
 minio/data/
 alloy/data/
+beszel/agent_data/
 
 # TLS certificates and keys
 mongodb/certs/*.key

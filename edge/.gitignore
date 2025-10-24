@@ -4,6 +4,7 @@ adguard/data/
 authentik/data/
 netbird/data/
 alloy/data/
+beszel/agent_data/
 
 # Logs
 *.log

@@ -8,6 +8,7 @@ loki/data/
 alloy/data/
 beszel/data/
 beszel/socket/
+beszel/agent_data/
 
 # Logs
 *.log

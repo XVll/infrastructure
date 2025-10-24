@@ -3,6 +3,8 @@
 
 # Application data directories
 data/
+beszel/agent_data/
+alloy/data/
 
 # Logs
 *.log
