@@ -34,7 +34,7 @@ services:
       - GITEA__server__SSH_PORT=222
 
       # Security
-      - GITEA__security__INSTALL_LOCK=true
+      - GITEA__security__INSTALL_LOCK=false
       - GITEA__security__SECRET_KEY=${GITEA_SECRET_KEY}
       - GITEA__security__INTERNAL_TOKEN=${GITEA_INTERNAL_TOKEN}
 
