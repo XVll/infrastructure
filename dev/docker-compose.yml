@@ -20,33 +20,12 @@ services:
       - USER_GID=1000
 
       # Database (PostgreSQL on db host)
+      # Only pre-configure database connection - all other settings via web installer
       - GITEA__database__DB_TYPE=postgres
       - GITEA__database__HOST=10.10.10.111:5432
       - GITEA__database__NAME=gitea
       - GITEA__database__USER=gitea
       - GITEA__database__PASSWD=${GITEA_DB_PASSWORD}
-
-      # Server settings
-      - GITEA__server__DOMAIN=git.${DOMAIN}
-      - GITEA__server__SSH_DOMAIN=git.${DOMAIN}
-      - GITEA__server__ROOT_URL=https://git.${DOMAIN}
-      - GITEA__server__HTTP_PORT=3000
-      - GITEA__server__SSH_PORT=222
-
-      # Security
-      - GITEA__security__INSTALL_LOCK=false
-      - GITEA__security__SECRET_KEY=${GITEA_SECRET_KEY}
-      - GITEA__security__INTERNAL_TOKEN=${GITEA_INTERNAL_TOKEN}
-
-      # Actions (CI/CD)
-      - GITEA__actions__ENABLED=true
-
-      # Package/Container Registry
-      - GITEA__packages__ENABLED=true
-
-      # Service settings
-      - GITEA__service__DISABLE_REGISTRATION=true
-      - GITEA__service__REQUIRE_SIGNIN_VIEW=false
 
     ports:
       - "10.10.10.114:3000:3000"  # HTTP
