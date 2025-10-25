@@ -35,7 +35,9 @@
 ### Phase 4: Applications ⏳ IN PROGRESS
 - [ ] Jellyfin, Arr Stack, qBittorrent (media host - 10.10.10.113)
 - [ ] n8n, Paperless (media host - 10.10.10.113)
-- [ ] Gitea + Dokploy (dev host - 10.10.10.114)
+- [x] **Gitea** (dev host - 10.10.10.114) - Git hosting + Container Registry + Gitea Actions
+- [x] **act_runner** (dev host - 10.10.10.114) - CI/CD runner registered and idle
+- [ ] Dokploy (dev host - 10.10.10.114) - Deployment platform (ready to install)
 
 ---
 
@@ -842,42 +844,76 @@ op read "op://Server/postgres/password"
 
 **VM:** dev (10.10.10.114)
 
-**Services:**
-- **Gitea** - Self-hosted Git + Container Registry + Gitea Actions (CI/CD)
-- **Dokploy** - Deployment platform with built-in Traefik
+**Status:** ✅ Gitea deployed and working, Dokploy ready to install
 
-**Status:** Configuration files created, ready to deploy
+**Access:**
+- **Gitea:** https://git.onurx.com (via Traefik with SSL)
+- **Gitea SSH:** git@git.onurx.com:222
+- **Dokploy:** https://deploy.onurx.com (after installation)
 
-**Gitea Access:** `http://10.10.10.114:3000` (HTTP), `10.10.10.114:222` (SSH)
-**Dokploy Access:** `http://10.10.10.114:3200` (after installation)
+**Services Deployed:**
 
-**Deployment:**
+**Gitea v1.24.7** - Self-hosted Git with Actions & Container Registry
+- ✅ PostgreSQL database on db host (10.10.10.111)
+- ✅ Gitea Actions enabled
+- ✅ Container Registry enabled (OCI-compliant)
+- ✅ Package Registry enabled (npm, PyPI, etc.)
+- ✅ Traefik routes configured with Let's Encrypt SSL
+- ✅ Admin user: `fxx`
+
+**act_runner v0.2.13** - Executes Gitea Actions workflows
+- ✅ Registered with Gitea as "homelab-runner"
+- ✅ Status: Idle (ready to run workflows)
+- ✅ Labels: ubuntu-latest, ubuntu-22.04
+
+**Database Configuration:**
 ```bash
-# SSH to dev VM (10.10.10.114)
-cd /opt/homelab
+# PostgreSQL on db host (10.10.10.111)
+Database: gitea
+User: gitea
+Password: Stored in 1Password (op://Server/gitea-db/password)
 
-# 1. Create PostgreSQL database first (on db host)
-docker exec -it postgres psql -U postgres
-CREATE DATABASE gitea;
-CREATE USER gitea WITH PASSWORD 'password';
-GRANT ALL PRIVILEGES ON DATABASE gitea TO gitea;
-\q
-
-# 2. Deploy Gitea
-op run --env-file=.env -- docker compose up -d gitea
-
-# 3. Install Dokploy (separate installer)
-curl -sSL https://dokploy.com/install.sh | sh
+# Permissions granted:
+GRANT ALL ON SCHEMA public TO gitea;
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO gitea;
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO gitea;
 ```
 
-**Features:**
-- Git repository hosting (private repos)
-- GitHub Actions-compatible CI/CD (Gitea Actions)
-- OCI container registry
-- Repository mirroring (GitHub ↔ Gitea)
-- Automated deployments via Dokploy
+**1Password Items:**
+- `gitea-db` - PostgreSQL password
+- `gitea` - secret_key, internal_token, runner_token
 
-**See:** `dev/README.md` for full setup instructions
+**Features Available:**
+- ✅ Git repository hosting (unlimited private repos)
+- ✅ GitHub Actions-compatible CI/CD (Gitea Actions)
+- ✅ OCI container registry (Docker images)
+- ✅ Package registry (npm, PyPI, Maven, etc.)
+- ✅ Repository mirroring (GitHub ↔ Gitea bidirectional sync)
+- ✅ SSH clone support on port 222
+- ✅ Git LFS enabled
+
+**Testing:**
+```bash
+# Clone via HTTPS
+git clone https://git.onurx.com/fxx/repo.git
+
+# Clone via SSH
+git clone ssh://git@git.onurx.com:222/fxx/repo.git
+
+# Container registry login
+docker login git.onurx.com
+
+# Push image to registry
+docker push git.onurx.com/fxx/image:tag
+```
+
+**Next Steps:**
+1. Install Dokploy: `curl -sSL https://dokploy.com/install.sh | sh`
+2. Test Gitea Actions with a sample workflow
+3. Test container registry push/pull
+4. Set up repository mirroring with GitHub
+
+**See:** `dev/README.md` and `dev/DEPLOYMENT_GUIDE.txt` for detailed setup
 
 ---
 
