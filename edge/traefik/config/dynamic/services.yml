@@ -72,11 +72,16 @@ http:
         servers:
           - url: "http://10.10.10.113:8000"
 
-    # VM 5: Coolify (10.10.10.114)
-    coolify:
+    # VM 5: Dev (10.10.10.114)
+    gitea:
       loadBalancer:
         servers:
-          - url: "http://10.10.10.114:8000"
+          - url: "http://10.10.10.114:3000"
+
+    dokploy:
+      loadBalancer:
+        servers:
+          - url: "http://10.10.10.114:3200"
 
     # VM 2: Database Host (10.10.10.111)
     minio-console:

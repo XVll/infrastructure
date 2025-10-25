@@ -154,12 +154,23 @@ http:
       tls:
         certResolver: cloudflare
 
-    # Coolify
-    coolify:
-      rule: "Host(`coolify.onurx.com`)"
+    # Gitea (Git + Container Registry + CI/CD)
+    gitea:
+      rule: "Host(`git.onurx.com`)"
       entryPoints:
         - websecure
-      service: coolify
+      service: gitea
+      middlewares:
+        - security-headers
+      tls:
+        certResolver: cloudflare
+
+    # Dokploy (Deployment Platform)
+    dokploy:
+      rule: "Host(`deploy.onurx.com`)"
+      entryPoints:
+        - websecure
+      service: dokploy
       middlewares:
         - authentik
         - security-headers
